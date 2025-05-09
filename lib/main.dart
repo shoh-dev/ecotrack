@@ -19,6 +19,7 @@ import 'package:ecotrack/domain/use_cases/get_footprint_history_use_case_impl.da
 import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/create_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_goals_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case_impl.dart';
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
@@ -31,6 +32,7 @@ import 'package:ecotrack/domain/use_cases/get_footprint_history_use_case.dart';
 import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case.dart';
 import 'package:ecotrack/domain/use_cases/create_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_goals_use_case.dart';
+import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case.dart';
 
 // Import Screens/Containers
 import 'package:ecotrack/presentation/screens/main_screen_container.dart';
@@ -110,6 +112,17 @@ void main() {
                     >(), // Get GoalRepository from providers
               ),
         ),
+        // CalculateGoalProgressUseCase depends on ActivityRepository.
+        Provider<CalculateGoalProgressUseCase>(
+          // Provide CalculateGoalProgressUseCaseImpl
+          create:
+              (context) => CalculateGoalProgressUseCaseImpl(
+                context
+                    .read<
+                      ActivityRepository
+                    >(), // Get ActivityRepository from providers
+              ),
+        ),
 
         // Provide the AppViewModel first, as other Viewmodels might depend on it (e.g., Dashboard).
         ChangeNotifierProvider<AppViewModel>(
@@ -128,7 +141,7 @@ void main() {
                 context
                     .read<
                       CalculateFootprintUseCase
-                    >(), // Inject CalculateFootprintUseCase
+                    >(), // Inject CalculateFootprintUse Case
                 context
                     .read<FootprintRepository>(), // Inject FootprintRepository
                 context
@@ -148,12 +161,20 @@ void main() {
         ),
 
         // Provide the GoalsViewModel.
-        // It now depends on GoalRepository for the stream.
+        // It depends on GoalRepository for the stream AND CalculateGoalProgressUseCase.
         ChangeNotifierProvider<GoalsViewModel>(
           create:
               (context) => GoalsViewModel(
                 context
                     .read<GoalRepository>(), // Inject GoalRepository for stream
+                context
+                    .read<
+                      ActivityRepository
+                    >(), // Inject ActivityRepository for stream
+                context
+                    .read<
+                      CalculateGoalProgressUseCase
+                    >(), // Inject CalculateGoalProgressUseCase
               ),
         ),
 
@@ -167,7 +188,6 @@ void main() {
         ),
 
         // Add other ViewModels here as they are created.
-        // e.g., ChangeNotifierProvider<ResourcesViewModel>(create: ...), etc.
       ],
       child: const MyApp(), // Our main application widget
     ),

@@ -27,10 +27,23 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
   String _selectedStatus = 'Active'; // Default status
 
   // State for date pickers
-  DateTime _selectedStartDate = DateTime.now();
-  DateTime _selectedEndDate = DateTime.now().add(
-    const Duration(days: 30),
-  ); // Default end date 30 days from now
+  // Initialize with time component adjusted for full day coverage
+  DateTime _selectedStartDate = DateTime.now().copyWith(
+    hour: 0,
+    minute: 0,
+    second: 0,
+    millisecond: 0,
+    microsecond: 0,
+  );
+  DateTime _selectedEndDate = DateTime.now()
+      .add(const Duration(days: 30))
+      .copyWith(
+        hour: 23,
+        minute: 59,
+        second: 59,
+        millisecond: 999,
+        microsecond: 999,
+      );
 
   // Example lists for dropdowns (will come from a ViewModel/Model later)
   final List<String> _goalTypes = [
@@ -117,12 +130,28 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
     );
     if (pickedDate != null && pickedDate != _selectedStartDate) {
       setState(() {
-        _selectedStartDate = pickedDate;
+        // Set the time to the beginning of the day
+        _selectedStartDate = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          0,
+          0,
+          0,
+          0,
+          0, // Set time to 00:00:00.000000
+        );
         // Ensure end date is not before start date
         if (_selectedEndDate.isBefore(_selectedStartDate)) {
-          _selectedEndDate = _selectedStartDate.add(
-            const Duration(days: 1),
-          ); // Default to day after start
+          _selectedEndDate = _selectedStartDate
+              .add(const Duration(days: 1))
+              .copyWith(
+                hour: 23,
+                minute: 59,
+                second: 59,
+                millisecond: 999,
+                microsecond: 999,
+              ); // Default to day after start, end of day
         }
       });
     }
@@ -138,7 +167,17 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
     );
     if (pickedDate != null && pickedDate != _selectedEndDate) {
       setState(() {
-        _selectedEndDate = pickedDate;
+        // Set the time to the end of the day
+        _selectedEndDate = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          23,
+          59,
+          59,
+          999,
+          999, // Set time to 23:59:59.999999
+        );
       });
     }
   }

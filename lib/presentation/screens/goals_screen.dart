@@ -8,7 +8,7 @@ import 'package:ecotrack/presentation/screens/create_goal_screen.dart'; // Impor
 
 // GoalsScreen is the View for displaying and managing user goals.
 // It is a StatelessWidget that consumes the GoalsViewModel,
-// which now reacts to changes in the GoalRepository stream.
+// which now reacts to changes in the GoalRepository stream and calculates progress.
 class GoalsScreen extends StatelessWidget {
   const GoalsScreen({super.key});
 
@@ -16,7 +16,7 @@ class GoalsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Watch the GoalsViewModel to react to state changes (isLoading, messages, goals).
+    // Watch the GoalsViewModel to react to state changes (isLoading, messages, goals, progress).
     // This widget will rebuild when the ViewModel notifies listeners.
     final goalsViewModel = context.watch<GoalsViewModel>();
 
@@ -40,8 +40,8 @@ class GoalsScreen extends StatelessWidget {
           );
         },
         tooltip: 'Add New Goal',
-        backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(Icons.add),
+        backgroundColor: Theme.of(context).primaryColor,
       ),
     );
   }
@@ -69,12 +69,15 @@ class GoalsScreen extends StatelessWidget {
         itemCount: viewModel.goals.length,
         itemBuilder: (context, index) {
           final goal = viewModel.goals[index];
-          // Display each goal in a ListTile (basic representation for now)
+          // Get the progress for this goal from the ViewModel.
+          final progress = viewModel.getGoalProgress(goal.id);
+
+          // Display each goal in a ListTile, including progress.
           return ListTile(
             title: Text(goal.name),
             subtitle: Text(
-              '${goal.type} - Target: ${goal.targetValue} ${goal.targetUnit}',
-            ),
+              '${goal.type} - Target: ${goal.targetValue} ${goal.targetUnit}\nProgress: ${progress.toStringAsFixed(2)}%',
+            ), // Display progress
             trailing: Text(goal.status),
             onTap: () {
               // TODO: Implement navigation to a "Goal Details" screen
