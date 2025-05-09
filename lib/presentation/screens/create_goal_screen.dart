@@ -46,12 +46,14 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
   @override
   void initState() {
     super.initState();
+    print('CreateGoalScreen: initState called'); // Debug log
     // No initial data fetch needed here.
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    print('CreateGoalScreen: didChangeDependencies called'); // Debug log
 
     // Watch the CreateGoalViewModel.
     // This establishes a dependency, ensuring didChangeDependencies is called
@@ -75,6 +77,8 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(currentSaveMessage)));
+          // Clear the success message from the ViewModel after handling it.
+          createGoalViewModel.clearSaveMessage();
           // Navigate back to the Goals list screen
           Navigator.pop(context);
         }
@@ -83,6 +87,8 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(currentErrorMessage)));
+          // Clear the error message from the ViewModel after handling it.
+          createGoalViewModel.clearErrorMessage();
         }
       });
     }
@@ -311,6 +317,9 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                     createGoalViewModel.isSaving
                         ? null
                         : () {
+                          print(
+                            'CreateGoalScreen: Save Goal button pressed',
+                          ); // Debug log
                           // Validate the form before attempting to save
                           if (_formKey.currentState!.validate()) {
                             // Form is valid, proceed with saving

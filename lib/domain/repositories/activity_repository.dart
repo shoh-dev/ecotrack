@@ -16,5 +16,11 @@ abstract class ActivityRepository {
   // Deletes a specific activity by its ID.
   Future<void> deleteActivity(String activityId);
 
-  // Potentially other methods like updateActivity, etc.
+  // --- Reactive Method ---
+  // Returns a stream that emits the current list of activities whenever it changes.
+  Stream<List<Activity>> watchActivities();
+  // --- End Reactive Method ---
+
+  // Remember to add a dispose method to close streams/resources in implementations.
+  void dispose();
 }

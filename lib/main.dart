@@ -6,7 +6,7 @@ import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/dashboard_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart';
-import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart'; // Import CreateGoalViewModel
+import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart';
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_impl.dart';
@@ -42,11 +42,18 @@ void main() {
       providers: [
         // Provide concrete Repository implementations.
         // Use the abstract interface type for loose coupling.
-        Provider<ActivityRepository>(create: (_) => ActivityRepositoryImpl()),
+        // Add dispose callback for repositories that manage resources (like streams).
+        Provider<ActivityRepository>(
+          create: (_) => ActivityRepositoryImpl(),
+          dispose:
+              (_, repository) => repository.dispose(), // Dispose the repository
+        ),
         Provider<FootprintRepository>(create: (_) => FootprintRepositoryImpl()),
         Provider<GoalRepository>(
           // Provide GoalRepositoryImpl
           create: (_) => GoalRepositoryImpl(),
+          dispose:
+              (_, repository) => repository.dispose(), // Dispose the repository
         ),
 
         // Provide concrete Use Case implementations.
@@ -92,6 +99,7 @@ void main() {
               ),
         ),
         // GetGoalsUseCase depends on GoalRepository.
+        // This Use Case is no longer needed by GoalsViewModel, but might be used elsewhere later.
         Provider<GetGoalsUseCase>(
           // Provide GetGoalsUseCaseImpl
           create:
@@ -103,13 +111,13 @@ void main() {
               ),
         ),
 
-        // Provide the AppViewModel first, as other ViewModels might depend on it (e.g., Dashboard).
+        // Provide the AppViewModel first, as other Viewmodels might depend on it (e.g., Dashboard).
         ChangeNotifierProvider<AppViewModel>(
           create: (context) => AppViewModel(),
         ),
 
         // Provide the DashboardViewModel.
-        // Inject its dependencies.
+        // Inject its dependencies, including ActivityRepository for the stream.
         ChangeNotifierProvider<DashboardViewModel>(
           create:
               (context) => DashboardViewModel(
@@ -123,6 +131,10 @@ void main() {
                     >(), // Inject CalculateFootprintUseCase
                 context
                     .read<FootprintRepository>(), // Inject FootprintRepository
+                context
+                    .read<
+                      ActivityRepository
+                    >(), // Inject ActivityRepository for stream
               ),
         ),
 
@@ -136,18 +148,18 @@ void main() {
         ),
 
         // Provide the GoalsViewModel.
-        // It depends on GetGoalsUseCase.
+        // It now depends on GoalRepository for the stream.
         ChangeNotifierProvider<GoalsViewModel>(
           create:
               (context) => GoalsViewModel(
-                context.read<GetGoalsUseCase>(), // Inject GetGoalsUseCase
+                context
+                    .read<GoalRepository>(), // Inject GoalRepository for stream
               ),
         ),
 
         // Provide the CreateGoalViewModel.
         // It depends on CreateGoalUseCase.
         ChangeNotifierProvider<CreateGoalViewModel>(
-          // Provide CreateGoalViewModel
           create:
               (context) => CreateGoalViewModel(
                 context.read<CreateGoalUseCase>(), // Inject CreateGoalUseCase
@@ -167,16 +179,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Colors.green;
-    final onPrimaryColor = Colors.white;
     return MaterialApp(
       title: 'EcoTrack', // App title
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        appBarTheme: AppBarTheme(
-          backgroundColor: primaryColor,
-          foregroundColor: onPrimaryColor,
-        ),
+        primarySwatch:
+            Colors.green, // Using a green primary color as per design system
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // Set MainScreenContainer as the home screen

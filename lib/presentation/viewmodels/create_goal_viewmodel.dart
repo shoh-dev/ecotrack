@@ -20,6 +20,20 @@ class CreateGoalViewModel extends ChangeNotifier {
   String? get saveMessage => _saveMessage;
   String? get errorMessage => _errorMessage;
 
+  // --- New Methods to Clear Messages ---
+  // Call this from the View after the success message has been handled.
+  void clearSaveMessage() {
+    _saveMessage = null;
+    notifyListeners(); // Notify listeners that the message is cleared
+  }
+
+  // Call this from the View after the error message has been handled.
+  void clearErrorMessage() {
+    _errorMessage = null;
+    notifyListeners(); // Notify listeners that the message is cleared
+  }
+  // --- End New Methods ---
+
   // Method to create a new goal. Called by the CreateGoalScreen when the form is submitted.
   Future<void> createGoal({
     required String name,
@@ -33,8 +47,8 @@ class CreateGoalViewModel extends ChangeNotifier {
     Map<String, dynamic>? details,
   }) async {
     _isSaving = true; // Set saving state to true
-    _saveMessage = null; // Clear previous messages
-    _errorMessage = null; // Clear previous errors
+    _saveMessage = null; // Clear previous messages before starting
+    _errorMessage = null; // Clear previous errors before starting
     notifyListeners(); // Notify listeners to show loading indicator
 
     try {
@@ -59,18 +73,23 @@ class CreateGoalViewModel extends ChangeNotifier {
       _isSaving = false; // Set saving state to false
       _saveMessage =
           'Goal created successfully with ID: $goalId'; // Set success message
-      notifyListeners(); // Notify listeners with success message
+      // notifyListeners(); // Notify listeners with success message (called after clear)
 
-      // Optional: Navigate back or show success confirmation in the UI.
-      // The View (CreateGoalScreen) would listen to the saveMessage and handle this.
+      // Note: We will call notifyListeners after clearing the message in the View.
+      // This prevents the message from lingering.
     } catch (e) {
       // Handle errors during saving
       _isSaving = false; // Set saving state to false
       _saveMessage = null; // Clear success message
       _errorMessage =
           'Failed to create goal: ${e.toString()}'; // Set error message
-      notifyListeners(); // Notify listeners with the error state
+      // notifyListeners(); // Notify listeners with the error state (called after clear)
       print('Error creating goal: $e'); // Log the error
+    } finally {
+      // Ensure listeners are notified after state update, even on error.
+      // This single notifyListeners call covers both success and error paths
+      // after _isSaving, _saveMessage, or _errorMessage are updated.
+      notifyListeners();
     }
   }
 

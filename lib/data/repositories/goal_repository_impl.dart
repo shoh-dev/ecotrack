@@ -1,3 +1,4 @@
+import 'dart:async'; // Import async for StreamController
 import 'package:ecotrack/domain/entities/goal.dart'; // Import the Goal entity
 import 'package:ecotrack/domain/repositories/goal_repository.dart'; // Import the abstract repository interface
 import 'package:uuid/uuid.dart'; // We'll use this for generating unique IDs
@@ -8,6 +9,14 @@ class GoalRepositoryImpl implements GoalRepository {
   // Use a static list to simulate data persistence across different instances
   // (though data is still lost on app restart).
   static final List<Goal> _goals = [];
+
+  // StreamController to manage the stream of goal lists.
+  // The stream will emit the current list whenever it changes.
+  final _goalsController =
+      StreamController<
+        List<Goal>
+      >.broadcast(); // Use .broadcast for multiple listeners
+
   final Uuid _uuid = const Uuid(); // Helper to generate unique IDs
 
   // Note: You should have added the uuid package earlier.
@@ -26,6 +35,10 @@ class GoalRepositoryImpl implements GoalRepository {
         print(
           'GoalRepositoryImpl: Updated goal with ID: ${goal.id}',
         ); // For demonstration
+
+        // Add the updated list of goals to the stream.
+        _goalsController.sink.add(_goals.toList()); // Add a copy to the stream
+
         return goal.id;
       }
     }
@@ -48,6 +61,10 @@ class GoalRepositoryImpl implements GoalRepository {
     print(
       'GoalRepositoryImpl: Saved new goal with ID: ${goalToSave.id}',
     ); // For demonstration
+
+    // Add the updated list of goals to the stream.
+    _goalsController.sink.add(_goals.toList()); // Add a copy to the stream
+
     return goalToSave.id; // Return the ID of the saved goal
   }
 
@@ -107,10 +124,35 @@ class GoalRepositoryImpl implements GoalRepository {
       print(
         'GoalRepositoryImpl: Deleted goal with ID: $goalId',
       ); // For demonstration
+      // Add the updated list of goals to the stream after deletion.
+      _goalsController.sink.add(_goals.toList()); // Add a copy to the stream
     } else {
       print(
         'GoalRepositoryImpl: Goal with ID $goalId not found for deletion.',
       ); // For demonstration
     }
+  }
+
+  @override
+  Stream<List<Goal>> watchGoals() {
+    // Return the stream from the controller.
+    // We also add the current list immediately when someone starts listening.
+    // This ensures the listener gets the initial data.
+    if (_goals.isNotEmpty) {
+      _goalsController.sink.add(_goals.toList());
+    } else {
+      _goalsController.sink.add([]); // Emit empty list if no goals
+    }
+    return _goalsController.stream;
+  }
+
+  @override
+  void dispose() {
+    // Close the stream controller when the repository is no longer needed.
+    // This prevents memory leaks.
+    _goalsController.close();
+    print(
+      'GoalRepositoryImpl: StreamController disposed.',
+    ); // For demonstration
   }
 }

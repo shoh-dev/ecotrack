@@ -15,5 +15,11 @@ abstract class GoalRepository {
   // Deletes a specific goal by its ID.
   Future<void> deleteGoal(String goalId);
 
-  // Potentially other methods like updateGoalStatus, etc.
+  // --- Reactive Method ---
+  // Returns a stream that emits the current list of goals whenever it changes.
+  Stream<List<Goal>> watchGoals();
+  // --- End Reactive Method ---
+
+  // Remember to add a dispose method to close streams/resources in implementations.
+  void dispose();
 }

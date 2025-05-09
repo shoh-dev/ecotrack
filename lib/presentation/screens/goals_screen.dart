@@ -1,66 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import provider
 import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart'; // Import GoalsViewModel
-import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart'; // Import AppViewModel to listen to navigation state
+// No longer need AppViewModel import here as we don't listen to its index directly.
+// import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
 import 'package:ecotrack/domain/entities/goal.dart'; // Import Goal entity
 import 'package:ecotrack/presentation/screens/create_goal_screen.dart'; // Import CreateGoalScreen
 
 // GoalsScreen is the View for displaying and managing user goals.
-// It is a StatefulWidget to manage its lifecycle and listen to tab changes.
-class GoalsScreen extends StatefulWidget {
+// It is a StatelessWidget that consumes the GoalsViewModel,
+// which now reacts to changes in the GoalRepository stream.
+class GoalsScreen extends StatelessWidget {
   const GoalsScreen({super.key});
 
-  @override
-  State<GoalsScreen> createState() => _GoalsScreenState();
-}
-
-class _GoalsScreenState extends State<GoalsScreen> {
-  // Keep track of the previously active index to trigger fetch only on tab change to Goals.
-  int _previousIndex =
-      -1; // Initialize with a value that won't match any valid index
-
-  @override
-  void initState() {
-    super.initState();
-    // Initial data fetch logic is in didChangeDependencies.
-  }
-
-  // This method is called whenever the widget's dependencies change.
-  // It's also called once after initState.
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // Watch the AppViewModel to get the current screen index.
-    // This establishes a dependency, ensuring didChangeDependencies is called
-    // when currentScreenIndex changes.
-    final appViewModel = context.watch<AppViewModel>();
-    final currentIndex = appViewModel.currentScreenIndex;
-
-    // Check if the current index is the Goals index (2) AND
-    // if the previous index was different from the current index.
-    // This ensures the fetch is triggered only when the Goals tab becomes active.
-    // The index for Goals is 2 (Dashboard 0, Track 1, Goals 2).
-    if (currentIndex == 2 && _previousIndex != currentIndex) {
-      print(
-        'GoalsScreen: Navigated to Goals tab. Triggering data fetch.',
-      ); // Debug log
-      // Use Future.microtask to schedule the fetch after the build phase.
-      Future.microtask(() {
-        // Use context.read to call the ViewModel method.
-        context.read<GoalsViewModel>().fetchGoals();
-      });
-    }
-
-    // Update the previous index to the current index for the next comparison.
-    _previousIndex = currentIndex;
-  }
-
-  @override
-  void dispose() {
-    // Clean up resources if needed.
-    super.dispose();
-  }
+  // Removed initState and didChangeDependencies as the ViewModel is reactive.
 
   @override
   Widget build(BuildContext context) {
@@ -81,15 +33,15 @@ class _GoalsScreenState extends State<GoalsScreen> {
       floatingActionButton: FloatingActionButton(
         // Add a FAB for adding new goals
         onPressed: () {
-          // Navigate to the CreateGoalScreen
+          // Navigate to the "Create Goal" screen
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CreateGoalScreen()),
           );
         },
         tooltip: 'Add New Goal',
-        child: const Icon(Icons.add),
         backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(Icons.add),
       ),
     );
   }
