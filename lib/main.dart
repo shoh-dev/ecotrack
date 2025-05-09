@@ -1,13 +1,11 @@
+import 'package:ecotrack/presentation/screens/main_screen_container.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import the provider package
 
 // Import ViewModels
 import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/dashboard_viewmodel.dart';
-import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart'; // Import TrackViewModel
-
-// Import Screens/Containers
-import 'package:ecotrack/presentation/screens/main_screen_container.dart';
+import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart';
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_impl.dart';
@@ -16,6 +14,7 @@ import 'package:ecotrack/data/repositories/footprint_repository_impl.dart';
 // Import concrete Use Case implementations
 import 'package:ecotrack/domain/use_cases/log_activity_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_footprint_history_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case_impl.dart';
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
@@ -24,6 +23,7 @@ import 'package:ecotrack/domain/repositories/footprint_repository.dart';
 // Import abstract Use Case interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/use_cases/log_activity_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_footprint_history_use_case.dart';
+import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case.dart';
 
 void main() {
   // We use MultiProvider to provide multiple dependencies at the root.
@@ -59,6 +59,16 @@ void main() {
                     >(), // Get FootprintRepository from providers
               ),
         ),
+        // CalculateFootprintUseCase depends on ActivityRepository.
+        Provider<CalculateFootprintUseCase>(
+          create:
+              (context) => CalculateFootprintUseCaseImpl(
+                context
+                    .read<
+                      ActivityRepository
+                    >(), // Get ActivityRepository from providers
+              ),
+        ),
 
         // Provide the AppViewModel.
         // Use ChangeNotifierProvider for ViewModels that extend ChangeNotifier.
@@ -71,12 +81,20 @@ void main() {
         ),
 
         // Provide the DashboardViewModel.
-        // It depends on GetFootprintHistoryUseCase, which is provided above it.
+        // Inject its dependencies using context.read.
         ChangeNotifierProvider<DashboardViewModel>(
           create:
               (context) => DashboardViewModel(
                 context
-                    .read<GetFootprintHistoryUseCase>(), // Inject the Use Case
+                    .read<
+                      GetFootprintHistoryUseCase
+                    >(), // Inject GetFootprintHistoryUseCase
+                context
+                    .read<
+                      CalculateFootprintUseCase
+                    >(), // Inject CalculateFootprintUseCase
+                context
+                    .read<FootprintRepository>(), // Inject FootprintRepository
               ),
         ),
 

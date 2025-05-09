@@ -12,7 +12,7 @@ import 'package:ecotrack/presentation/screens/profile_screen.dart';
 import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
 
 // MainScreenContainer is a View component.
-// It uses the AppViewModel to manage which screen is currently displayed.
+// It is a StatelessWidget that uses the AppViewModel to manage the current screen index.
 class MainScreenContainer extends StatelessWidget {
   const MainScreenContainer({super.key});
 
@@ -34,11 +34,6 @@ class MainScreenContainer extends StatelessWidget {
     final int currentIndex = appViewModel.currentScreenIndex;
 
     return Scaffold(
-      // AppBar is typically managed by the individual screens when using a BottomNavigationBar,
-      // but we can add one here if a consistent app bar is desired across tabs.
-      // For now, we'll let individual screens manage their app bars (or lack thereof).
-      // appBar: AppBar(title: Text('EcoTrack')), // Example if needed
-
       // Display the screen corresponding to the current index from the ViewModel.
       body: IndexedStack(
         // Use IndexedStack to keep screens alive when switching

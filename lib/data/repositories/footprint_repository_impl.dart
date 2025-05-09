@@ -10,10 +10,9 @@ class FootprintRepositoryImpl implements FootprintRepository {
   static final List<FootprintEntry> _footprintEntries = [];
   final Uuid _uuid = const Uuid(); // Helper to generate unique IDs
 
-  // Note: You should have added the uuid package in the previous step.
-
   @override
   Future<void> saveFootprintEntry(FootprintEntry entry) async {
+    print('FootprintRepositoryImpl: Saving footprint entry...'); // New log
     // Generate a unique ID if the entry doesn't have one (useful for new entries)
     final entryToSave =
         entry.id.isEmpty
@@ -28,7 +27,9 @@ class FootprintRepositoryImpl implements FootprintRepository {
     // In a real implementation, you'd save to a database or send to an API.
     // Here, we just add to the list.
     _footprintEntries.add(entryToSave);
-    print('Saved footprint entry: ${entryToSave.id}'); // For demonstration
+    print(
+      'FootprintRepositoryImpl: Saved entry with ID: ${entryToSave.id}, Total CO2e: ${entryToSave.totalCo2e}',
+    ); // Updated log
   }
 
   @override
@@ -38,6 +39,8 @@ class FootprintRepositoryImpl implements FootprintRepository {
   }) async {
     // Simulate a small delay for async operation
     await Future.delayed(const Duration(milliseconds: 100));
+
+    print('FootprintRepositoryImpl: Getting footprint history...'); // New log
 
     // Filter entries based on optional criteria
     Iterable<FootprintEntry> filteredEntries =
@@ -58,7 +61,11 @@ class FootprintRepositoryImpl implements FootprintRepository {
       );
     }
 
-    return filteredEntries.toList();
+    final result = filteredEntries.toList();
+    print(
+      'FootprintRepositoryImpl: Retrieved ${result.length} history entries.',
+    ); // New log
+    return result;
   }
 
   @override
@@ -66,9 +73,15 @@ class FootprintRepositoryImpl implements FootprintRepository {
     // Simulate a small delay for async operation
     await Future.delayed(const Duration(milliseconds: 50));
 
-    // Return the most recent entry, or null if the list is empty.
-    return _footprintEntries.isNotEmpty ? _footprintEntries.last : null;
-  }
+    print(
+      'FootprintRepositoryImpl: Getting latest footprint entry...',
+    ); // New log
 
-  // Note: We are not implementing updateFootprintEntry for this basic example.
+    // Return the most recent entry, or null if the list is empty.
+    final latest = _footprintEntries.isNotEmpty ? _footprintEntries.last : null;
+    print(
+      'FootprintRepositoryImpl: Latest entry: ${latest != null ? latest.totalCo2e : 'null'}',
+    ); // New log
+    return latest;
+  }
 }
