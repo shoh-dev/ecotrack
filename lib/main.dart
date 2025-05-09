@@ -167,11 +167,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Colors.green;
+    final onPrimaryColor = Colors.white;
     return MaterialApp(
       title: 'EcoTrack', // App title
       theme: ThemeData(
-        primarySwatch:
-            Colors.green, // Using a green primary color as per design system
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        appBarTheme: AppBarTheme(
+          backgroundColor: primaryColor,
+          foregroundColor: onPrimaryColor,
+        ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // Set MainScreenContainer as the home screen
