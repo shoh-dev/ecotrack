@@ -1,0 +1,43 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI Development Agent Rules for EcoTrack (MVVM + Provider)
+
+These rules govern the interaction style, technical approach, and code generation standards for the AI agent assisting with the EcoTrack Flutter project using MVVM and the Provider package.
+
+## General Interaction Rules:
+
+1.  **Be Context-Aware:** Always consider the overall project goals, the chosen MVVM architecture, the use of Provider for state management, and the current stage of development when providing assistance or generating code.
+2.  **Prioritize Clarity:** Provide clear, concise explanations for code snippets, design choices, or suggested solutions. Explain how the generated code fits into the MVVM pattern.
+3.  **Follow Instructions:** Adhere strictly to specific requests (e.g., "generate a ViewModel for X screen", "create a widget for Y that uses Z ViewModel").
+4.  **Suggest, Don't Dictate:** When suggesting alternative approaches or improvements, explain the reasoning and present them as options for the human developer to consider. Do not unilaterally refactor large sections of code without instruction.
+5.  **Ask for Clarification:** If a request is ambiguous or requires domain knowledge not explicitly provided, ask clarifying questions before proceeding.
+6.  **Focus on Incremental Assistance:** Generate code or provide help for specific features, components, or problems (e.g., a single ViewModel, a specific screen's UI and its connection to a ViewModel, a data repository implementation). Avoid attempting to generate the entire application structure or complex flows in a single response unless explicitly asked for a high-level outline.
+
+## Technical & Code Generation Rules:
+
+7.  **Use Flutter & Dart:** All code generation and technical advice must be specific to Flutter and Dart.
+8.  **Adhere to Folder Structure:** When generating new files or suggesting locations for code, follow the `/lib/presentation`, `/lib/domain`, `/lib/data`, `/lib/core`, `/lib/app` structure, placing ViewModels in `/lib/presentation/viewmodels`.
+9.  **Enforce MVVM with Provider:**
+    * ALL state management and presentation logic must adhere to the MVVM pattern.
+    * Use the `provider` library for dependency injection and state exposure.
+    * ViewModels must extend `ChangeNotifier` and be placed in the `presentation/viewmodels` folder.
+    * Provide ViewModels using `ChangeNotifierProvider`.
+    * Views (Widgets) must consume ViewModels using `Consumer`, `Selector`, `context.watch`, or `context.read`.
+    * Views should NOT contain complex business logic or direct data fetching/manipulation; this belongs in the ViewModel or lower layers.
+    * Do not suggest or use `setState` for application-wide state or state shared between widgets; use the ViewModel for this.
+    * Do not suggest or use other state management solutions like BLoC, Riverpod, GetX, MobX, etc.
+10. **Follow Dart Style Guide:** Generated code must conform to the standard Dart style guide and be runnable through `dart format`.
+11. **Write Clean & Readable Code:** Generated code should use meaningful variable names, appropriate `const` and `final` keywords, and be easy to understand.
+12. **Include Necessary Imports:** Ensure all generated code snippets include the necessary `import` statements.
+13. **Add Comments/Docstrings:** Include brief comments for complex logic and docstrings for functions/classes where their purpose isn't immediately obvious. Document the purpose of ViewModels.
+14. **Consider Error Handling:** When generating code that involves potential errors (e.g., data fetching in a Repository or Use Case, handled in a ViewModel), include basic error handling mechanisms and consider how errors will be exposed to the View (e.g., error state in the ViewModel).
+15. **Generate Tests (When Applicable):** For core logic (`domain`, `data`) or complex ViewModels/Widgets (`presentation`), suggest or provide corresponding unit or widget tests when generating code snippets. Tests for ViewModels are crucial.
+
+## Project-Specific Rules:
+
+16. **Acknowledge Eco-Footprint Context:** Understand the domain context (tracking various categories, calculating CO2e) when suggesting data models, input methods, or visualization approaches. Ensure ViewModels handle the logic related to these calculations and data transformations for the View.
+17. **Prioritize Data Accuracy Principles:** While not an environmental expert, acknowledge the need for accurate data and methodologies as mentioned in the project guide when discussing calculations or data sources. The logic for using these belongs in the Model layers (`domain`, `data`), orchestrated by Use Cases, and exposed via ViewModels.
+18. **Keep Monetization in Mind:** When discussing features, particularly those differentiating free vs. premium tiers, implicitly or explicitly acknowledge the monetization strategy outlined in the project guide. ViewModels might expose properties indicating the user's subscription status to the View.

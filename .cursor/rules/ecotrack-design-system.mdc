@@ -1,0 +1,136 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# EcoTrack UI/UX Design System
+
+This document outlines the foundational elements of the EcoTrack mobile application's UI/UX design system. It serves as a guide for designers and developers to ensure consistency, usability, and a strong brand identity across the application, aligning with the MVVM architecture and Provider state management.
+
+## 1. Design Principles
+
+These principles guide all design decisions for EcoTrack:
+
+* **Empowering:** Make users feel capable of understanding and reducing their environmental impact.
+
+* **Clear & Intuitive:** Ensure ease of navigation, data input, and understanding of information, especially visualizations.
+
+* **Encouraging & Positive:** Motivate users through positive reinforcement and celebration of progress.
+
+* **Transparent:** Clearly explain calculations, data sources, and estimations.
+
+* **Eco-Conscious:** Reflect environmental themes through natural colors, clean design, and mindful aesthetics.
+
+* **Accessible:** Design for usability across a wide range of users and abilities.
+
+## 2. Brand Identity
+
+* **App Title:** EcoTrack
+
+* **Tagline:** Measure Your Impact. Reduce Your Footprint. Live More Sustainably.
+
+* **Logo Concept:** Should visually represent growth, nature, and tracking (e.g., a leaf combined with a graph or tracker icon).
+
+## 3. Color Palette
+
+Inspired by nature and balanced with functional UI needs. (Note: Specific hex codes are illustrative and would be finalized during design).
+
+* **Primary:** A clean, fresh green (e.g., `#4CAF50`, `#66BB6A`). Used for primary actions, active states, key data highlights.
+
+* **Secondary:** A calming blue (e.g., `#2196F3`, `#42A5F5`). Used for secondary actions, accents, or specific data categories (e.g., Transportation).
+
+* **Accent:** A warm, natural tone like muted orange or brown (e.g., `#FF9800`, `#FFA726`). Used sparingly for emphasis or calls to action (e.g., "Log Activity").
+
+* **Neutral Palette:**
+
+  * Dark Text/Icons: `#212121` or `#424242`
+
+  * Medium Grey (Secondary text, borders): `#757575`
+
+  * Light Grey (Backgrounds, separators): `#E0E0E0` or `#EEEEEE`
+
+  * White (Backgrounds, Cards): `#FFFFFF`
+
+* **Semantic Colors:**
+
+  * Success: Green (distinct from Primary, e.g., `#8BC34A`)
+
+  * Warning: Orange/Amber (e.g., `#FFC107`)
+
+  * Error: Red (e.g., `#F44336`)
+
+  * Info: Light Blue (e.g., `#03A9F4`)
+
+## 4. Typography
+
+A readable sans-serif font family is recommended for clarity on mobile screens.
+
+* **Font Family:** Roboto, Open Sans, or similar modern sans-serif.
+
+* **Heading Styles:** Defined for screen titles, section headers (e.g., using Flutter's `TextTheme` properties like `headlineLarge`, `titleMedium`). Larger, bolder weights.
+
+* **Body Text Styles:** For paragraphs, labels, descriptions (e.g., `bodyMedium`, `bodySmall`). Regular weights, optimized for mobile readability.
+
+* **Data/Number Styles:** Specific styles might be considered for large numerical displays.
+
+## 5. UI Components
+
+Reusable components to ensure consistency (`lib/presentation/widgets`).
+
+* **Buttons:** Primary (Filled), Secondary (Outlined), Text Button, Icon Button, Floating Action Button (FAB).
+
+* **Input Fields:** Text Input, Dropdown, Slider, Toggle Switch, Checkbox, Radio Button, Date/Time Picker.
+
+* **Cards/Containers:** Consistent padding, border radius, and elevation for grouping content.
+
+* **Data Visualization Elements:** Bar Chart, Line Chart, Pie/Donut Chart, Large Metric Display.
+
+* **Navigation:** Bottom Navigation Bar, App Bar/Top Bar.
+
+* **Indicators:** Loading Spinners, Progress Bars.
+
+* **Feedback:** Toasts/Snackbars, Dialogs/Modals.
+
+* **Lists:** Consistent styling for list items.
+
+* **Icons:** A consistent set of icons for actions, categories, and navigation.
+
+## 6. Data Visualization Principles
+
+* **Clarity:** Easy to read and understand.
+
+* **Context:** Always provide units (CO2e) and time periods.
+
+* **Comparison:** Enable comparison over time or against goals.
+
+* **Breakdown:** Clearly show category contributions.
+
+* **Progress:** Effectively visualize goal tracking.
+
+## 7. Layout & Spacing
+
+* Use a consistent spacing scale (e.g., multiples of 4dp or 8dp) for padding, margins, and gaps.
+
+* Define standard screen padding.
+
+* Ensure responsive layouts that adapt to different screen sizes.
+
+## 8. Accessibility
+
+* Sufficient color contrast.
+
+* Readable font sizes, consider dynamic type.
+
+* Clear labels for interactive elements.
+
+* Adequate touch target sizes.
+
+## 9. Tone of Voice
+
+* Supportive & Encouraging
+
+* Informative & Transparent
+
+* Action-Oriented
+
+* Empathetic
