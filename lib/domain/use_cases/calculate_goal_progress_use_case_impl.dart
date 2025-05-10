@@ -12,9 +12,9 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
   final ActivityRepository
   _activityRepository; // Dependency on ActivityRepository
   final FootprintRepository
-  _footprintRepository; // New dependency on FootprintRepository
+  _footprintRepository; // Dependency on FootprintRepository
   final EmissionFactorRepository
-  _emissionFactorRepository; // New dependency on EmissionFactorRepository
+  _emissionFactorRepository; // Dependency on EmissionFactorRepository
 
   // Constructor: Inject dependencies.
   CalculateGoalProgressUseCaseImpl(
@@ -35,7 +35,7 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
 
     // Business logic for different goal types.
     if (goal.type == 'ActivityTarget') {
-      // --- Activity Target Logic (Existing) ---
+      // --- Activity Target Logic (Existing and Working) ---
       final relevantActivities = await _activityRepository.getActivities(
         startDate: goal.startDate,
         endDate: goal.endDate,
@@ -86,15 +86,56 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
       ); // Debug log
       return progress.clamp(0.0, 100.0); // Clamp progress between 0 and 100%
     } else if (goal.type == 'FootprintReduction') {
-      // --- Footprint Reduction Logic (New) ---
+      // --- Footprint Reduction Logic (Refining Baseline) ---
       print(
         'CalculateGoalProgressUseCase (FootprintReduction): Calculating progress...',
       ); // Debug log
 
-      // 1. Get all activities to calculate footprints.
-      final allActivities = await _activityRepository.getActivities();
+      // Helper function to calculate footprint for a list of activities using EmissionFactorRepository.
+      Future<double> _calculateFootprintForActivities(
+        List<Activity> activities,
+      ) async {
+        double totalCo2e = 0.0;
+        for (final activity in activities) {
+          // Use the injected EmissionFactorRepository to get the factor.
+          final factor = await _emissionFactorRepository.getFactorForActivity(
+            activityCategory: activity.category,
+            activityType: activity.type,
+            unit: activity.unit,
+            timestamp:
+                activity
+                    .timestamp, // Pass timestamp if factors are time-sensitive
+          );
+          if (factor != null) {
+            totalCo2e += activity.value * factor.co2ePerUnit;
+            // print('  - Footprint Calc: Activity ${activity.type} (${activity.value} ${activity.unit}) * Factor ${factor.co2ePerUnit} = ${activity.value * factor.co2ePerUnit}'); // Debug log (can be noisy)
+          } else {
+            // print('  - Footprint Calc: No factor found for ${activity.category} - ${activity.type} (${activity.unit}). Skipping.'); // Debug log (can be noisy)
+          }
+        }
+        return totalCo2e;
+      }
 
-      // 2. Filter activities for the goal period (current footprint).
+      // 1. Get all activities to calculate footprints within specific date ranges.
+      final allActivities = await _activityRepository.getActivities();
+      print(
+        'CalculateGoalProgressUseCase (FootprintReduction): Fetched ${allActivities.length} total activities.',
+      ); // Debug log
+
+      // 2. Calculate the duration of the goal period.
+      final goalDuration = goal.endDate.difference(goal.startDate);
+      print(
+        'CalculateGoalProgressUseCase (FootprintReduction): Goal duration: $goalDuration',
+      ); // Debug log
+
+      // 3. Determine the baseline period (same duration immediately before the goal starts).
+      final baselineEndDate = goal.startDate;
+      final baselineStartDate = goal.startDate.subtract(goalDuration);
+      print(
+        'CalculateGoalProgressUseCase (FootprintReduction): Baseline period: ${baselineStartDate.toIso8601String()} to ${baselineEndDate.toIso8601String()}',
+      ); // Debug log
+
+      // 4. Filter activities for the goal period (current footprint).
       final activitiesInGoalPeriod =
           allActivities
               .where(
@@ -105,35 +146,28 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
                         activity.timestamp.isAtSameMomentAs(goal.endDate)),
               )
               .toList();
+      print(
+        'CalculateGoalProgressUseCase (FootprintReduction): ${activitiesInGoalPeriod.length} activities in goal period.',
+      ); // Debug log
 
-      // 3. Filter activities for the baseline period (before goal start).
-      // This is a simplified baseline: activities before the goal started.
-      // A more realistic baseline might be the same duration *before* the goal.
-      final activitiesBeforeGoalPeriod =
+      // 5. Filter activities for the baseline period.
+      final activitiesInBaselinePeriod =
           allActivities
-              .where((activity) => activity.timestamp.isBefore(goal.startDate))
+              .where(
+                (activity) =>
+                    (activity.timestamp.isAfter(baselineStartDate) ||
+                        activity.timestamp.isAtSameMomentAs(
+                          baselineStartDate,
+                        )) &&
+                    (activity.timestamp.isBefore(baselineEndDate) ||
+                        activity.timestamp.isAtSameMomentAs(baselineEndDate)),
+              )
               .toList();
+      print(
+        'CalculateGoalProgressUseCase (FootprintReduction): ${activitiesInBaselinePeriod.length} activities in baseline period.',
+      ); // Debug log
 
-      // Helper function to calculate footprint for a list of activities.
-      Future<double> _calculateFootprintForActivities(
-        List<Activity> activities,
-      ) async {
-        double totalCo2e = 0.0;
-        for (final activity in activities) {
-          final factor = await _emissionFactorRepository.getFactorForActivity(
-            activityCategory: activity.category,
-            activityType: activity.type,
-            unit: activity.unit,
-            timestamp: activity.timestamp,
-          );
-          if (factor != null) {
-            totalCo2e += activity.value * factor.co2ePerUnit;
-          }
-        }
-        return totalCo2e;
-      }
-
-      // Calculate current footprint during the goal period.
+      // Calculate current footprint during the goal period using emission factors.
       final currentFootprint = await _calculateFootprintForActivities(
         activitiesInGoalPeriod,
       );
@@ -141,14 +175,12 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
         'CalculateGoalProgressUseCase (FootprintReduction): Current footprint in goal period: ${currentFootprint.toStringAsFixed(2)} kg CO2e',
       ); // Debug log
 
-      // Calculate baseline footprint from activities before the goal started.
-      // If no activities before, assume a baseline (e.g., the average of the first few activities, or 0 if no history).
-      // For simplicity here, let's calculate from activities before the goal.
+      // Calculate baseline footprint from activities in the baseline period using emission factors.
       final baselineFootprint = await _calculateFootprintForActivities(
-        activitiesBeforeGoalPeriod,
+        activitiesInBaselinePeriod,
       );
       print(
-        'CalculateGoalProgressUseCase (FootprintReduction): Baseline footprint before goal period: ${baselineFootprint.toStringAsFixed(2)} kg CO2e',
+        'CalculateGoalProgressUseCase (FootprintReduction): Baseline footprint in baseline period: ${baselineFootprint.toStringAsFixed(2)} kg CO2e',
       ); // Debug log
 
       // Calculate the reduction achieved so far.
@@ -174,6 +206,7 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
       double progress = (reductionAchieved / targetReduction) * 100.0;
 
       // If current footprint is higher than baseline (negative reduction), progress is 0.
+      // Also, progress cannot exceed 100% (already handled by clamp, but explicit check can be good).
       if (reductionAchieved < 0) {
         progress = 0.0;
         print(

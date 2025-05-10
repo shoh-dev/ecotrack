@@ -7,7 +7,7 @@ import 'package:ecotrack/presentation/viewmodels/dashboard_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart';
-import 'package:ecotrack/presentation/viewmodels/goal_details_viewmodel.dart'; // Import GoalDetailsViewModel
+import 'package:ecotrack/presentation/viewmodels/goal_details_viewmodel.dart';
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_impl.dart';
@@ -23,6 +23,8 @@ import 'package:ecotrack/domain/use_cases/create_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_goals_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/update_goal_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/delete_goal_use_case_impl.dart'; // Import DeleteGoalUseCaseImpl
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
@@ -38,6 +40,8 @@ import 'package:ecotrack/domain/use_cases/create_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_goals_use_case.dart';
 import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case.dart';
+import 'package:ecotrack/domain/use_cases/update_goal_use_case.dart';
+import 'package:ecotrack/domain/use_cases/delete_goal_use_case.dart'; // Import DeleteGoalUseCase abstract
 
 // Import Screens/Containers
 import 'package:ecotrack/presentation/screens/main_screen_container.dart';
@@ -157,6 +161,28 @@ void main() {
                     >(), // Get GoalRepository from providers
               ),
         ),
+        // UpdateGoalUseCase depends on GoalRepository.
+        Provider<UpdateGoalUseCase>(
+          // Provide UpdateGoalUseCaseImpl
+          create:
+              (context) => UpdateGoalUseCaseImpl(
+                context
+                    .read<
+                      GoalRepository
+                    >(), // Get GoalRepository from providers
+              ),
+        ),
+        // DeleteGoalUseCase depends on GoalRepository.
+        Provider<DeleteGoalUseCase>(
+          // Provide DeleteGoalUseCaseImpl
+          create:
+              (context) => DeleteGoalUseCaseImpl(
+                context
+                    .read<
+                      GoalRepository
+                    >(), // Get GoalRepository from providers
+              ),
+        ),
 
         // Provide the AppViewModel first, as other Viewmodels might depend on it (e.g., Dashboard).
         ChangeNotifierProvider<AppViewModel>(
@@ -222,12 +248,15 @@ void main() {
         ),
 
         // Provide the GoalDetailsViewModel.
-        // It depends on GetGoalByIdUseCase.
+        // It depends on GetGoalByIdUseCase AND UpdateGoalUseCase AND DeleteGoalUseCase.
         ChangeNotifierProvider<GoalDetailsViewModel>(
           // Provide GoalDetailsViewModel
           create:
               (context) => GoalDetailsViewModel(
                 context.read<GetGoalByIdUseCase>(), // Inject GetGoalByIdUseCase
+                context.read<UpdateGoalUseCase>(), // Inject UpdateGoalUseCase
+                context.read<DeleteGoalUseCase>(), // Inject DeleteGoalUseCase
+                // Will inject DeleteGoalUseCase here in the next step
               ),
         ),
 
