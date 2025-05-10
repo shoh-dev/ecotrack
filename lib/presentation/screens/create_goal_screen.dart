@@ -60,7 +60,31 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
   void initState() {
     super.initState();
     print('CreateGoalScreen: initState called'); // Debug log
-    // No initial data fetch needed here.
+
+    // --- Debug: Pre-fill form fields for testing ---
+    _nameController.text = 'Sample Activity Goal';
+    _descriptionController.text = 'Reduce car travel by logging trips.';
+    _targetValueController.text = '100.0';
+    _targetUnitController.text = 'km';
+    _selectedType = 'ActivityTarget'; // Or 'FootprintReduction'
+    _selectedStatus = 'Active';
+    _selectedStartDate = DateTime.now().copyWith(
+      hour: 0,
+      minute: 0,
+      second: 0,
+      millisecond: 0,
+      microsecond: 0,
+    );
+    _selectedEndDate = DateTime.now()
+        .add(const Duration(days: 30))
+        .copyWith(
+          hour: 23,
+          minute: 59,
+          second: 59,
+          millisecond: 999,
+          microsecond: 999,
+        );
+    // --- End Debug ---
   }
 
   @override
@@ -311,7 +335,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                 decoration: const InputDecoration(labelText: 'Target Unit'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a target unit';
+                    return 'Please enter a unit';
                   }
                   return null;
                 },

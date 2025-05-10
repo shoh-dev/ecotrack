@@ -5,6 +5,7 @@ import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart'; // Impor
 // import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
 import 'package:ecotrack/domain/entities/goal.dart'; // Import Goal entity
 import 'package:ecotrack/presentation/screens/create_goal_screen.dart'; // Import CreateGoalScreen
+import 'package:ecotrack/presentation/screens/goal_details_screen.dart'; // Import GoalDetailsScreen
 
 // GoalsScreen is the View for displaying and managing user goals.
 // It is a StatelessWidget that consumes the GoalsViewModel,
@@ -16,9 +17,13 @@ class GoalsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('GoalsScreen: build called'); // Debug log
     // Watch the GoalsViewModel to react to state changes (isLoading, messages, goals, progress).
     // This widget will rebuild when the ViewModel notifies listeners.
     final goalsViewModel = context.watch<GoalsViewModel>();
+    print(
+      'GoalsScreen: ViewModel has ${goalsViewModel.goals.length} goals, isLoading: ${goalsViewModel.isLoading}, errorMessage: ${goalsViewModel.errorMessage}',
+    ); // Debug log
 
     return Scaffold(
       appBar: AppBar(
@@ -71,6 +76,9 @@ class GoalsScreen extends StatelessWidget {
           final goal = viewModel.goals[index];
           // Get the progress for this goal from the ViewModel.
           final progress = viewModel.getGoalProgress(goal.id);
+          print(
+            'GoalsScreen: Displaying goal "${goal.name}", retrieved progress: ${progress.toStringAsFixed(2)}%',
+          ); // Debug log
 
           // Display each goal in a ListTile, including progress.
           return ListTile(
@@ -80,8 +88,16 @@ class GoalsScreen extends StatelessWidget {
             ), // Display progress
             trailing: Text(goal.status),
             onTap: () {
-              // TODO: Implement navigation to a "Goal Details" screen
-              print('Tapped on goal: ${goal.name}'); // Placeholder
+              // Navigate to the GoalDetailsScreen when the list tile is tapped.
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => GoalDetailsScreen(
+                        goalId: goal.id,
+                      ), // Pass the goal ID
+                ),
+              );
             },
           );
         },

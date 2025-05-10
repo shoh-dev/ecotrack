@@ -7,32 +7,37 @@ import 'package:ecotrack/presentation/viewmodels/dashboard_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart';
+import 'package:ecotrack/presentation/viewmodels/goal_details_viewmodel.dart'; // Import GoalDetailsViewModel
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_impl.dart';
 import 'package:ecotrack/data/repositories/footprint_repository_impl.dart';
 import 'package:ecotrack/data/repositories/goal_repository_impl.dart';
+import 'package:ecotrack/data/repositories/emission_factor_repository_impl.dart';
 
-// Import concrete Use Case implementations
+// Import concrete UseCase implementations
 import 'package:ecotrack/domain/use_cases/log_activity_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_footprint_history_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/create_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_goals_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case_impl.dart';
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
 import 'package:ecotrack/domain/repositories/footprint_repository.dart';
 import 'package:ecotrack/domain/repositories/goal_repository.dart';
+import 'package:ecotrack/domain/repositories/emission_factor_repository.dart';
 
-// Import abstract Use Case interfaces (needed for type hinting in Provider)
+// Import abstract UseCase interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/use_cases/log_activity_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_footprint_history_use_case.dart';
 import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case.dart';
 import 'package:ecotrack/domain/use_cases/create_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_goals_use_case.dart';
 import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case.dart';
+import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case.dart';
 
 // Import Screens/Containers
 import 'package:ecotrack/presentation/screens/main_screen_container.dart';
@@ -57,8 +62,16 @@ void main() {
           dispose:
               (_, repository) => repository.dispose(), // Dispose the repository
         ),
+        Provider<EmissionFactorRepository>(
+          // Provide EmissionFactorRepositoryImpl
+          create: (_) => EmissionFactorRepositoryImpl(),
+          dispose:
+              (_, repository) =>
+                  repository
+                      .dispose(), // Dispose the repository (even if empty for consistency)
+        ),
 
-        // Provide concrete Use Case implementations.
+        // Provide concrete UseCase implementations.
         // LogActivityUseCase depends on ActivityRepository.
         Provider<LogActivityUseCase>(
           create:
@@ -79,14 +92,19 @@ void main() {
                     >(), // Get FootprintRepository from providers
               ),
         ),
-        // CalculateFootprintUseCase depends on ActivityRepository.
+        // CalculateFootprintUseCase depends on ActivityRepository AND EmissionFactorRepository.
         Provider<CalculateFootprintUseCase>(
+          // Provide CalculateFootprintUseCaseImpl
           create:
               (context) => CalculateFootprintUseCaseImpl(
                 context
                     .read<
                       ActivityRepository
                     >(), // Get ActivityRepository from providers
+                context
+                    .read<
+                      EmissionFactorRepository
+                    >(), // Inject EmissionFactorRepository
               ),
         ),
         // CreateGoalUseCase depends on GoalRepository.
@@ -101,7 +119,6 @@ void main() {
               ),
         ),
         // GetGoalsUseCase depends on GoalRepository.
-        // This Use Case is no longer needed by GoalsViewModel, but might be used elsewhere later.
         Provider<GetGoalsUseCase>(
           // Provide GetGoalsUseCaseImpl
           create:
@@ -112,7 +129,7 @@ void main() {
                     >(), // Get GoalRepository from providers
               ),
         ),
-        // CalculateGoalProgressUseCase depends on ActivityRepository.
+        // CalculateGoalProgressUseCase depends on ActivityRepository, FootprintRepository, AND EmissionFactorRepository.
         Provider<CalculateGoalProgressUseCase>(
           // Provide CalculateGoalProgressUseCaseImpl
           create:
@@ -121,6 +138,23 @@ void main() {
                     .read<
                       ActivityRepository
                     >(), // Get ActivityRepository from providers
+                context
+                    .read<FootprintRepository>(), // Inject FootprintRepository
+                context
+                    .read<
+                      EmissionFactorRepository
+                    >(), // Inject EmissionFactorRepository
+              ),
+        ),
+        // GetGoalByIdUseCase depends on GoalRepository.
+        Provider<GetGoalByIdUseCase>(
+          // Provide GetGoalByIdUseCaseImpl
+          create:
+              (context) => GetGoalByIdUseCaseImpl(
+                context
+                    .read<
+                      GoalRepository
+                    >(), // Get GoalRepository from providers
               ),
         ),
 
@@ -141,7 +175,7 @@ void main() {
                 context
                     .read<
                       CalculateFootprintUseCase
-                    >(), // Inject CalculateFootprintUse Case
+                    >(), // Inject CalculateFootprintUseCase
                 context
                     .read<FootprintRepository>(), // Inject FootprintRepository
                 context
@@ -161,7 +195,7 @@ void main() {
         ),
 
         // Provide the GoalsViewModel.
-        // It depends on GoalRepository for the stream AND CalculateGoalProgressUseCase.
+        // It depends on GoalRepository for the stream AND CalculateGoalProgressUseCase AND ActivityRepository for its stream.
         ChangeNotifierProvider<GoalsViewModel>(
           create:
               (context) => GoalsViewModel(
@@ -184,6 +218,16 @@ void main() {
           create:
               (context) => CreateGoalViewModel(
                 context.read<CreateGoalUseCase>(), // Inject CreateGoalUseCase
+              ),
+        ),
+
+        // Provide the GoalDetailsViewModel.
+        // It depends on GetGoalByIdUseCase.
+        ChangeNotifierProvider<GoalDetailsViewModel>(
+          // Provide GoalDetailsViewModel
+          create:
+              (context) => GoalDetailsViewModel(
+                context.read<GetGoalByIdUseCase>(), // Inject GetGoalByIdUseCase
               ),
         ),
 

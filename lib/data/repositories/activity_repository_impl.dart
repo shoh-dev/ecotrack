@@ -1,7 +1,7 @@
 import 'dart:async'; // Import async for StreamController
 import 'package:ecotrack/domain/entities/activity.dart'; // Import the Activity entity
 import 'package:ecotrack/domain/repositories/activity_repository.dart'; // Import the abstract repository interface
-import 'package:uuid/uuid.dart'; // We'll use this for generating unique IDs
+import 'package:uuid/uuid.dart'; // Assuming uuid is already added for other repositories
 
 // In-memory implementation of the ActivityRepository interface.
 // Data is stored in a simple list in memory.
@@ -65,9 +65,17 @@ class ActivityRepositoryImpl implements ActivityRepository {
     // Simulate a small delay for async operation
     await Future.delayed(const Duration(milliseconds: 100));
 
+    // --- New Debug Logs ---
+    print(
+      'ActivityRepositoryImpl.getActivities: Received startDate: ${startDate?.toIso8601String()}',
+    );
+    print(
+      'ActivityRepositoryImpl.getActivities: Received endDate: ${endDate?.toIso8601String()}',
+    );
+    // --- End New Debug Logs ---
+
     print('ActivityRepositoryImpl: Getting activities...'); // For demonstration
 
-    // Filter activities based on optional criteria
     Iterable<Activity> filteredActivities =
         _activities.reversed; // Show newest first
 

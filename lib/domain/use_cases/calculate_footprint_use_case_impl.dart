@@ -1,99 +1,89 @@
 import 'package:ecotrack/domain/entities/activity.dart'; // Import Activity entity
 import 'package:ecotrack/domain/entities/footprint_entry.dart'; // Import FootprintEntry entity
+import 'package:ecotrack/domain/entities/emission_factor.dart'; // Import EmissionFactor entity
 import 'package:ecotrack/domain/repositories/activity_repository.dart'; // Import ActivityRepository interface
-import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case.dart'; // Import the abstract use case interface
-import 'package:uuid/uuid.dart'; // Import uuid for generating FootprintEntry ID
+import 'package:ecotrack/domain/repositories/emission_factor_repository.dart'; // Import EmissionFactorRepository interface
+import 'package:ecotrack/domain/use_cases/calculate_footprint_use_case.dart'; // Import abstract Use Case interface
 
 // Concrete implementation of the CalculateFootprintUseCase.
-// Contains the business logic for calculating the eco-footprint.
+// Calculates the total CO2e footprint based on logged activities and emission factors.
 class CalculateFootprintUseCaseImpl implements CalculateFootprintUseCase {
-  final ActivityRepository
-  _activityRepository; // Dependency on ActivityRepository
-  final Uuid _uuid = const Uuid(); // Helper to generate unique IDs
+  final ActivityRepository _activityRepository; // Dependency to get activities
+  final EmissionFactorRepository
+  _emissionFactorRepository; // New dependency to get emission factors
 
-  // Constructor: Inject the ActivityRepository dependency.
-  CalculateFootprintUseCaseImpl(this._activityRepository);
+  // Constructor: Inject dependencies.
+  CalculateFootprintUseCaseImpl(
+    this._activityRepository,
+    this._emissionFactorRepository,
+  );
 
   @override
   Future<FootprintEntry> execute() async {
-    print('CalculateFootprintUseCase: Starting calculation...'); // New log
+    print('CalculateFootprintUseCase: Starting calculation...'); // Debug log
 
-    // 1. Fetch all activities.
+    // 1. Get all activities from the repository.
+    // In a real app, we might filter by a time range (e.g., last month).
     final allActivities = await _activityRepository.getActivities();
     print(
       'CalculateFootprintUseCase: Fetched ${allActivities.length} activities.',
-    ); // New log
+    ); // Debug log
 
-    // 2. Perform the footprint calculation based on the activities.
-    // *** This is a simplified placeholder calculation. ***
     double totalCo2e = 0.0;
-    Map<String, double> categoryBreakdown = {};
+    final Map<String, double> categoryBreakdown = {};
 
+    // 2. Iterate through activities and calculate CO2e using emission factors.
     for (final activity in allActivities) {
-      double activityCo2e = 0.0; // CO2e for this specific activity
-
       print(
         'CalculateFootprintUseCase: Processing activity: ${activity.category}, Value: ${activity.value} ${activity.unit}',
-      ); // New log
+      ); // Debug log
 
-      // --- Simplified Calculation Logic Placeholder ---
-      // Assign arbitrary CO2e based on category and value.
-      // Replace this with actual emission factor calculations later.
-      switch (activity.category) {
-        case 'Transportation':
-          // Example: Assume 0.1 kg CO2e per km for transportation value
-          activityCo2e = activity.value * 0.1;
-          break;
-        case 'Home Energy':
-          // Example: Assume 0.5 kg CO2e per kWh for energy value
-          activityCo2e = activity.value * 0.5;
-          break;
-        case 'Diet':
-          // Example: Assume 1.0 kg CO2e per meal count (very rough)
-          activityCo2e = activity.value * 1.0;
-          break;
-        case 'Waste':
-          // Example: Assume 0.2 kg CO2e per count of waste item (very rough)
-          activityCo2e = activity.value * 0.2;
-          break;
-        case 'Consumption':
-          // Example: Assume 0.3 kg CO2e per unit of consumption value (very rough)
-          activityCo2e = activity.value * 0.3;
-          break;
-        default:
-          // Unknown category, assume 0 impact for now
-          activityCo2e = 0.0;
+      // Look up the emission factor for this activity.
+      final factor = await _emissionFactorRepository.getFactorForActivity(
+        activityCategory: activity.category,
+        activityType: activity.type,
+        unit: activity.unit,
+        timestamp:
+            activity.timestamp, // Pass timestamp if factors are time-sensitive
+      );
+
+      if (factor != null) {
+        // Factor found, calculate CO2e.
+        final activityCo2e = activity.value * factor.co2ePerUnit;
+        print(
+          'CalculateFootprintUseCase: Found factor ${factor.co2ePerUnit} ${factor.unit}/CO2e. Calculated activityCo2e = ${activityCo2e.toStringAsFixed(2)}',
+        ); // Debug log
+
+        totalCo2e += activityCo2e;
+
+        // Add to category breakdown.
+        categoryBreakdown[activity.category] =
+            (categoryBreakdown[activity.category] ?? 0.0) + activityCo2e;
+      } else {
+        // No factor found for this activity.
+        print(
+          'CalculateFootprintUseCase: No emission factor found for ${activity.category} - ${activity.type} (${activity.unit}). Skipping calculation for this activity.',
+        ); // Debug log
+        // This activity will not contribute to the footprint calculation.
       }
-      print(
-        'CalculateFootprintUseCase: Calculated activityCo2e = $activityCo2e',
-      ); // New log
-      // --- End Simplified Calculation Logic Placeholder ---
-
-      totalCo2e += activityCo2e;
-
-      // Add to category breakdown
-      categoryBreakdown[activity.category] =
-          (categoryBreakdown[activity.category] ?? 0.0) + activityCo2e;
     }
 
-    print('CalculateFootprintUseCase: Final totalCo2e = $totalCo2e'); // New log
+    print(
+      'CalculateFootprintUseCase: Final totalCo2e = ${totalCo2e.toStringAsFixed(2)}',
+    ); // Debug log
     print(
       'CalculateFootprintUseCase: Final categoryBreakdown = $categoryBreakdown',
-    ); // New log
+    ); // Debug log
+    print('CalculateFootprintUseCase: Calculation complete.'); // Debug log
 
-    // 3. Create a new FootprintEntry with the calculated result.
-    final newFootprintEntry = FootprintEntry(
-      id: _uuid.v4(), // Generate a unique ID for this entry
-      timestamp: DateTime.now(), // Timestamp when the calculation was performed
+    // 3. Return a new FootprintEntry with the calculated data.
+    return FootprintEntry(
+      id: '', // ID will be generated by the repository
+      timestamp: DateTime.now(), // Timestamp of the calculation
       totalCo2e: totalCo2e,
       categoryBreakdown: categoryBreakdown,
+      // You might add a reference to the activities used for calculation later
+      // activityIds: allActivities.map((a) => a.id).toList(),
     );
-
-    print(
-      'CalculateFootprintUseCase: Calculation complete.',
-    ); // Existing log (kept)
-
-    // 4. Return the calculated footprint entry.
-    return newFootprintEntry;
   }
 }
