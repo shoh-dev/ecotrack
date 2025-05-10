@@ -26,6 +26,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Keep track of the previous save message to trigger actions only on change.
   String? _previousSaveMessage;
 
+  // --- New State for View/Edit Mode ---
+  bool _isEditing = false; // Controls whether the form is editable
+  // --- End New State for View/Edit Mode ---
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // Listener method to populate form fields when the profile is fetched.
+  // Listener method to populate form fields when the goal is fetched.
   void _populateFieldsFromProfile() {
     final viewModel = context.read<ProfileViewModel>();
     final fetchedProfile = viewModel.userProfile;
@@ -59,10 +63,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _locationController.text =
             fetchedProfile.location ?? ''; // Use empty string for null location
         // TODO: Populate settings fields if added later
+
+        // --- New: Set _isEditing to false after populating fields ---
+        // This switches to the read-only view after the profile is loaded.
+        setState(() {
+          _isEditing = false;
+        });
+        // --- End New ---
+
         print(
           'ProfileScreen: Fields populated from fetched profile.',
         ); // Debug log
       });
+    } else {
+      // If profile is null after fetch, ensure we are in editing mode to show the form.
+      setState(() {
+        _isEditing = true;
+      });
+      print(
+        'ProfileScreen: Profile not found after fetch. Setting _isEditing = true.',
+      ); // Debug log
     }
   }
 
@@ -93,6 +113,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ).showSnackBar(SnackBar(content: Text(currentSaveMessage)));
           // Clear the success message from the ViewModel after handling it.
           viewModel.clearSaveMessage();
+          // --- New: Switch to read-only view after successful save ---
+          setState(() {
+            _isEditing = false;
+          });
+          // --- End New ---
         }
         // If it's an error message, show a Snackbar.
         else if (currentSaveErrorMessage != null) {
@@ -129,13 +154,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Watch the ProfileViewModel to react to state changes (isLoading, messages, userProfile, isSaving).
     final profileViewModel = context.watch<ProfileViewModel>();
     print(
-      'ProfileScreen: ViewModel state - isLoading: ${profileViewModel.isLoading}, isSaving: ${profileViewModel.isSaving}, errorMessage: ${profileViewModel.errorMessage}, userProfile: ${profileViewModel.userProfile != null}',
+      'ProfileScreen: ViewModel state - isLoading: ${profileViewModel.isLoading}, isSaving: ${profileViewModel.isSaving}, errorMessage: ${profileViewModel.errorMessage}, userProfile: ${profileViewModel.userProfile != null}, isEditing: $_isEditing',
     ); // Debug log
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'), // App bar title
         backgroundColor: Theme.of(context).primaryColor,
+        actions: [
+          // --- New: Add Edit button ---
+          if (profileViewModel.userProfile != null &&
+              !profileViewModel.isLoading &&
+              !profileViewModel.isSaving &&
+              !_isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Edit Profile',
+              onPressed: () {
+                setState(() {
+                  _isEditing = true; // Switch to editing mode
+                });
+              },
+            ),
+          // --- End New ---
+        ],
       ),
       body: _buildBody(
         context,
@@ -144,13 +186,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Helper method to build the body content based on ViewModel state.
+  // Helper method to build the body content based on ViewModel state and _isEditing.
   Widget _buildBody(BuildContext context, ProfileViewModel viewModel) {
     print(
       'ProfileScreen:_buildBody called. Checking ViewModel state...',
     ); // Debug log
     print(
-      'ProfileScreen:_buildBody: isLoading: ${viewModel.isLoading}, isSaving: ${viewModel.isSaving}, errorMessage: ${viewModel.errorMessage}, userProfile: ${viewModel.userProfile != null}',
+      'ProfileScreen:_buildBody: isLoading: ${viewModel.isLoading}, isSaving: ${viewModel.isSaving}, errorMessage: ${viewModel.errorMessage}, userProfile: ${viewModel.userProfile != null}, isEditing: $_isEditing',
     ); // Debug log
 
     // Show loading for initial fetch OR for saving
@@ -180,10 +222,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     }
-    // Otherwise, display the form. This includes the case where userProfile is null
-    // (no profile found, no fetch error) and the case where userProfile is not null (profile loaded).
+    // --- New Conditional Logic for View vs. Edit ---
+    // If profile exists AND we are NOT editing, show the read-only view.
+    else if (viewModel.userProfile != null && !_isEditing) {
+      print(
+        'ProfileScreen:_buildBody: Displaying read-only view.',
+      ); // Debug log
+      return _buildReadOnlyView(
+        context,
+        viewModel.userProfile!,
+      ); // Pass the loaded profile
+    }
+    // Otherwise (profile is null OR we ARE editing), display the editable form.
     else {
-      print('ProfileScreen:_buildBody: Displaying profile form.'); // Debug log
+      print(
+        'ProfileScreen:_buildBody: Displaying profile form (for creation or editing).',
+      ); // Debug log
       final userProfile = viewModel.userProfile; // Can be null
 
       return Padding(
@@ -274,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               // settings: userProfile?.settings, // Keep existing settings or update
                             );
 
-                            // Snackbar will be handled in didChangeDependencies upon message change
+                            // Snackbar and switching to read-only view will be handled in didChangeDependencies upon message change
                           }
                         },
                 child: const Text('Save Profile'),
@@ -284,5 +338,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     }
+    // --- End New Conditional Logic ---
   }
+
+  // --- New Helper Method for Read-Only View ---
+  Widget _buildReadOnlyView(BuildContext context, UserProfile profile) {
+    print(
+      'ProfileScreen:_buildReadOnlyView called for profile: ${profile.name}',
+    ); // Debug log
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ListView(
+        // Use ListView for scrolling
+        children: <Widget>[
+          const Text(
+            'Your Profile Information:',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+
+          // Name Display
+          _buildProfileDetailRow('Name:', profile.name),
+          const SizedBox(height: 8),
+
+          // Email Display (if available)
+          if (profile.email != null && profile.email!.isNotEmpty)
+            _buildProfileDetailRow('Email:', profile.email!),
+          if (profile.email != null && profile.email!.isNotEmpty)
+            const SizedBox(height: 8),
+
+          // Location Display (if available)
+          if (profile.location != null && profile.location!.isNotEmpty)
+            _buildProfileDetailRow('Location:', profile.location!),
+          if (profile.location != null && profile.location!.isNotEmpty)
+            const SizedBox(height: 8),
+
+          // Member Since Display (if available)
+          if (profile.memberSince != null)
+            _buildProfileDetailRow(
+              'Member Since:',
+              DateFormat('yyyy-MM-dd').format(profile.memberSince!),
+            ),
+          if (profile.memberSince != null) const SizedBox(height: 8),
+
+          // TODO: Add display for preferred units, baseline year, settings etc. later
+          const SizedBox(height: 24),
+
+          // No Save button in read-only view. Edit button is in AppBar.
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build a row for a profile detail.
+  Widget _buildProfileDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120, // Fixed width for labels for alignment
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
+      ],
+    );
+  }
+  // --- End New Helper Method for Read-Only View ---
 }
