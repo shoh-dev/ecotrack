@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart'; // Import the provider package
+import 'package:sqflite/sqflite.dart'; // Import sqflite for deleteDatabase
+import 'package:path/path.dart'; // Import path for join
+import 'package:path_provider/path_provider.dart'; // Import path_provider
+import 'dart:io'; // Import dart:io for File
 
 // Import ViewModels
 import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
@@ -12,12 +12,14 @@ import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goal_details_viewmodel.dart';
+import 'package:ecotrack/presentation/viewmodels/resources_viewmodel.dart';
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/footprint_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/goal_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/emission_factor_repository_db_impl.dart';
+import 'package:ecotrack/data/repositories/resource_repository_impl.dart';
 
 // Import concrete Use Case implementations
 import 'package:ecotrack/domain/use_cases/log_activity_use_case_impl.dart';
@@ -29,12 +31,14 @@ import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case_impl.
 import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/update_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/delete_goal_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/get_resources_use_case_impl.dart';
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
 import 'package:ecotrack/domain/repositories/footprint_repository.dart';
 import 'package:ecotrack/domain/repositories/goal_repository.dart';
 import 'package:ecotrack/domain/repositories/emission_factor_repository.dart';
+import 'package:ecotrack/domain/repositories/resource_repository.dart';
 
 // Import abstract Use Case interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/use_cases/log_activity_use_case.dart';
@@ -46,17 +50,17 @@ import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case.dart'
 import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case.dart';
 import 'package:ecotrack/domain/use_cases/update_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/delete_goal_use_case.dart';
+import 'package:ecotrack/domain/use_cases/get_resources_use_case.dart';
 
 // Import DatabaseHelper
 import 'package:ecotrack/data/database_helper.dart';
 
 // Import Screens/Containers
 import 'package:ecotrack/presentation/screens/main_screen_container.dart';
-import 'package:sqflite/sqflite.dart';
 
 // --- Debug Flag ---
 // Set to true to delete the database on app start for testing.
-const bool _clearDatabaseOnStart = true; // Set to true to clear database
+const bool _clearDatabaseOnStart = false; // Set to true to clear database
 // --- End Debug Flag ---
 
 // Function to delete the database file.
@@ -155,13 +159,20 @@ void main() async {
                   repository
                       .dispose(), // Dispose the repository (even if empty for consistency)
         ),
+        Provider<ResourceRepository>(
+          // Provide ResourceRepositoryImpl (in-memory)
+          create: (_) => ResourceRepositoryImpl(),
+          dispose:
+              (_, repository) =>
+                  repository
+                      .dispose(), // Dispose the repository (even if empty for consistency)
+        ),
 
         // Provide concrete Use Case implementations.
         // LogActivityUseCase depends on ActivityRepository.
         Provider<LogActivityUseCase>(
           create:
               (context) => LogActivityUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       ActivityRepository
@@ -172,7 +183,6 @@ void main() async {
         Provider<GetFootprintHistoryUseCase>(
           create:
               (context) => GetFootprintHistoryUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       FootprintRepository
@@ -181,10 +191,8 @@ void main() async {
         ),
         // CalculateFootprintUseCase depends on ActivityRepository AND EmissionFactorRepository.
         Provider<CalculateFootprintUseCase>(
-          // Corrected spacing
           create:
               (context) => CalculateFootprintUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       ActivityRepository
@@ -197,10 +205,8 @@ void main() async {
         ),
         // CreateGoalUseCase depends on GoalRepository.
         Provider<CreateGoalUseCase>(
-          // Corrected spacing
           create:
               (context) => CreateGoalUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       GoalRepository
@@ -209,10 +215,8 @@ void main() async {
         ),
         // GetGoalsUseCase depends on GoalRepository.
         Provider<GetGoalsUseCase>(
-          // Corrected spacing
           create:
               (context) => GetGoalsUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       GoalRepository
@@ -221,10 +225,8 @@ void main() async {
         ),
         // CalculateGoalProgressUseCase depends on ActivityRepository, FootprintRepository, AND EmissionFactorRepository.
         Provider<CalculateGoalProgressUseCase>(
-          // Corrected spacing
           create:
               (context) => CalculateGoalProgressUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       ActivityRepository
@@ -239,10 +241,8 @@ void main() async {
         ),
         // GetGoalByIdUseCase depends on GoalRepository.
         Provider<GetGoalByIdUseCase>(
-          // Corrected spacing
           create:
               (context) => GetGoalByIdUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       GoalRepository
@@ -251,10 +251,8 @@ void main() async {
         ),
         // UpdateGoalUseCase depends on GoalRepository.
         Provider<UpdateGoalUseCase>(
-          // Corrected spacing
           create:
               (context) => UpdateGoalUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       GoalRepository
@@ -263,14 +261,19 @@ void main() async {
         ),
         // DeleteGoalUseCase depends on GoalRepository.
         Provider<DeleteGoalUseCase>(
-          // Corrected spacing
           create:
               (context) => DeleteGoalUseCaseImpl(
-                // Corrected spacing
                 context
                     .read<
                       GoalRepository
                     >(), // Get GoalRepository from providers
+              ),
+        ),
+        // GetResourcesUseCase depends on ResourceRepository.
+        Provider<GetResourcesUseCase>(
+          create:
+              (context) => GetResourcesUseCaseImpl(
+                context.read<ResourceRepository>(), // Inject ResourceRepository
               ),
         ),
 
@@ -346,6 +349,16 @@ void main() async {
                 context.read<GetGoalByIdUseCase>(), // Inject GetGoalByIdUseCase
                 context.read<UpdateGoalUseCase>(), // Inject UpdateGoalUseCase
                 context.read<DeleteGoalUseCase>(), // Inject DeleteGoalUseCase
+              ),
+        ),
+
+        // Provide the ResourcesViewModel.
+        // It depends on GetResourcesUseCase.
+        ChangeNotifierProvider<ResourcesViewModel>(
+          // Provide ResourcesViewModel
+          create:
+              (context) => ResourcesViewModel(
+                context.read<ResourceRepository>(), // Inject ResourceRepository
               ),
         ),
 
