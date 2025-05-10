@@ -6,7 +6,7 @@ import 'package:ecotrack/presentation/screens/home_screen.dart';
 import 'package:ecotrack/presentation/screens/track_screen.dart';
 import 'package:ecotrack/presentation/screens/goals_screen.dart';
 import 'package:ecotrack/presentation/screens/resources_screen.dart';
-import 'package:ecotrack/presentation/screens/profile_screen.dart';
+import 'package:ecotrack/presentation/screens/profile_screen.dart'; // Import ProfileScreen
 
 // Import the AppViewModel
 import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
@@ -23,7 +23,7 @@ class MainScreenContainer extends StatelessWidget {
     TrackScreen(), // Index 1
     GoalsScreen(), // Index 2
     ResourcesScreen(), // Index 3
-    ProfileScreen(), // Index 4
+    ProfileScreen(), // Index 4 // Add ProfileScreen
   ];
 
   @override
@@ -83,7 +83,7 @@ class MainScreenContainer extends StatelessWidget {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person), // Placeholder icon for Profile
-            label: 'Profile',
+            label: 'Profile', // Add Profile tab
           ),
         ],
       ),

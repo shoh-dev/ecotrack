@@ -13,13 +13,15 @@ import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goal_details_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/resources_viewmodel.dart';
+import 'package:ecotrack/presentation/viewmodels/profile_viewmodel.dart'; // Import ProfileViewModel
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/footprint_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/goal_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/emission_factor_repository_db_impl.dart';
-import 'package:ecotrack/data/repositories/resource_repository_db_impl.dart'; // Using DbImpl
+import 'package:ecotrack/data/repositories/resource_repository_db_impl.dart';
+import 'package:ecotrack/data/repositories/user_profile_repository_db_impl.dart'; // Import UserProfileRepositoryDbImpl
 
 // Import concrete Use Case implementations
 import 'package:ecotrack/domain/use_cases/log_activity_use_case_impl.dart';
@@ -32,6 +34,8 @@ import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/update_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/delete_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_resources_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/get_user_profile_use_case_impl.dart'; // Import GetUserProfileUseCaseImpl
+import 'package:ecotrack/domain/use_cases/save_user_profile_use_case_impl.dart'; // Import SaveUserProfileUseCaseImpl
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
@@ -39,6 +43,7 @@ import 'package:ecotrack/domain/repositories/footprint_repository.dart';
 import 'package:ecotrack/domain/repositories/goal_repository.dart';
 import 'package:ecotrack/domain/repositories/emission_factor_repository.dart';
 import 'package:ecotrack/domain/repositories/resource_repository.dart';
+import 'package:ecotrack/domain/repositories/user_profile_repository.dart'; // Import UserProfileRepository abstract
 
 // Import abstract Use Case interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/use_cases/log_activity_use_case.dart';
@@ -51,6 +56,8 @@ import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case.dart';
 import 'package:ecotrack/domain/use_cases/update_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/delete_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_resources_use_case.dart';
+import 'package:ecotrack/domain/use_cases/get_user_profile_use_case.dart'; // Import GetUserProfileUseCase abstract
+import 'package:ecotrack/domain/use_cases/save_user_profile_use_case.dart'; // Import SaveUserProfileUseCase abstract
 
 // Import DatabaseHelper
 import 'package:ecotrack/data/database_helper.dart';
@@ -169,6 +176,14 @@ void main() async {
                   repository
                       .dispose(), // Dispose the repository (closes stream controller)
         ),
+        Provider<UserProfileRepository>(
+          // Provide UserProfileRepositoryDbImpl
+          create:
+              (context) =>
+                  UserProfileRepositoryDbImpl(context.read<DatabaseHelper>()),
+          dispose:
+              (_, repository) => repository.dispose(), // Dispose the repository
+        ),
 
         // Provide concrete Use Case implementations.
         // LogActivityUseCase depends on ActivityRepository.
@@ -278,6 +293,28 @@ void main() async {
                 context.read<ResourceRepository>(), // Inject ResourceRepository
               ),
         ),
+        // GetUserProfileUseCase depends on UserProfileRepository.
+        Provider<GetUserProfileUseCase>(
+          // Provide GetUserProfileUseCaseImpl
+          create:
+              (context) => GetUserProfileUseCaseImpl(
+                context
+                    .read<
+                      UserProfileRepository
+                    >(), // Inject UserProfileRepository
+              ),
+        ),
+        // SaveUserProfileUseCase depends on UserProfileRepository.
+        Provider<SaveUserProfileUseCase>(
+          // Provide SaveUserProfileUseCaseImpl
+          create:
+              (context) => SaveUserProfileUseCaseImpl(
+                context
+                    .read<
+                      UserProfileRepository
+                    >(), // Inject UserProfileRepository
+              ),
+        ),
 
         // Provide the AppViewModel first, as other Viewmodels might depend on it (e.g., Dashboard).
         ChangeNotifierProvider<AppViewModel>(
@@ -364,6 +401,23 @@ void main() async {
                     .read<
                       ResourceRepository
                     >(), // Inject ResourceRepository for stream
+              ),
+        ),
+
+        // Provide the ProfileViewModel.
+        // It depends on GetUserProfileUseCase and SaveUserProfileUseCase.
+        ChangeNotifierProvider<ProfileViewModel>(
+          // Provide ProfileViewModel
+          create:
+              (context) => ProfileViewModel(
+                context
+                    .read<
+                      GetUserProfileUseCase
+                    >(), // Inject GetUserProfileUseCase
+                context
+                    .read<
+                      SaveUserProfileUseCase
+                    >(), // Inject SaveUserProfileUseCase
               ),
         ),
 

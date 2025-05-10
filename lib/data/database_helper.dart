@@ -22,7 +22,9 @@ class DatabaseHelper {
   static const String footprintTable = 'footprint_entries';
   static const String goalTable = 'goals';
   static const String emissionFactorTable = 'emission_factors';
-  static const String resourceTable = 'resources'; // Resource table name
+  static const String resourceTable = 'resources';
+  static const String userProfileTable =
+      'user_profile'; // User Profile table name
 
   // Column names (examples - will need to match entity properties)
   // Activity Table Columns
@@ -69,7 +71,7 @@ class DatabaseHelper {
   static const String columnFactorEffectiveDate =
       'effectiveDate'; // Stored as INTEGER (Unix timestamp)
 
-  // Resource Table Columns (New)
+  // Resource Table Columns
   static const String columnResourceId = 'id';
   static const String columnResourceTitle = 'title';
   static const String columnResourceDescription = 'description';
@@ -79,6 +81,16 @@ class DatabaseHelper {
   static const String columnResourceImageUrl = 'imageUrl';
   static const String columnResourcePublicationDate =
       'publicationDate'; // Stored as INTEGER (Unix timestamp)
+
+  // User Profile Table Columns (New)
+  static const String columnProfileId = 'id';
+  static const String columnProfileName = 'name';
+  static const String columnProfileEmail = 'email';
+  static const String columnProfileLocation = 'location';
+  static const String columnProfileMemberSince =
+      'memberSince'; // Stored as INTEGER (Unix timestamp)
+  static const String columnProfileSettings =
+      'settings'; // Stored as TEXT (JSON string)
 
   // Get the database instance
   Future<Database> get database async {
@@ -164,10 +176,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create Resource Table (New)
-    print(
-      'DatabaseHelper: Executing CREATE TABLE for $resourceTable...',
-    ); // New Debug log
+    // Create Resource Table
     await db.execute('''
       CREATE TABLE $resourceTable (
         $columnResourceId TEXT PRIMARY KEY,
@@ -180,8 +189,23 @@ class DatabaseHelper {
         $columnResourcePublicationDate INTEGER
       )
     ''');
+
+    // Create User Profile Table (New)
     print(
-      'DatabaseHelper: CREATE TABLE for $resourceTable finished.',
+      'DatabaseHelper: Executing CREATE TABLE for $userProfileTable...',
+    ); // New Debug log
+    await db.execute('''
+      CREATE TABLE $userProfileTable (
+        $columnProfileId TEXT PRIMARY KEY,
+        $columnProfileName TEXT NOT NULL,
+        $columnProfileEmail TEXT,
+        $columnProfileLocation TEXT,
+        $columnProfileMemberSince INTEGER,
+        $columnProfileSettings TEXT
+      )
+    ''');
+    print(
+      'DatabaseHelper: CREATE TABLE for $userProfileTable finished.',
     ); // New Debug log
 
     print('DatabaseHelper: Tables created.'); // Debug log
@@ -215,6 +239,21 @@ class DatabaseHelper {
     //     )
     //   ''');
     //    print('DatabaseHelper: $resourceTable table added in upgrade.'); // Debug log
+    // }
+    // If upgrading from version 1 to 2, and adding the user_profile table:
+    // if (oldVersion < 2) {
+    //   print('DatabaseHelper: Adding $userProfileTable table in upgrade...'); // Debug log
+    //    await db.execute('''
+    //     CREATE TABLE $userProfileTable (
+    //       $columnProfileId TEXT PRIMARY KEY,
+    //       $columnProfileName TEXT NOT NULL,
+    //       $columnProfileEmail TEXT,
+    //       $columnProfileLocation TEXT,
+    //       $columnProfileMemberSince INTEGER,
+    //       $columnProfileSettings TEXT
+    //     )
+    //   ''');
+    //   print('DatabaseHelper: $userProfileTable table added in upgrade.'); // Debug log
     // }
   }
 
