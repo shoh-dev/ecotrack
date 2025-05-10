@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import provider
 import 'package:ecotrack/presentation/viewmodels/track_viewmodel.dart'; // Import TrackViewModel
 import 'package:intl/intl.dart'; // Import intl for date formatting
+import 'package:ecotrack/core/constants/app_units.dart'; // Import AppUnits constants
 
 // TrackScreen is the View for logging activities.
 // It is a StatefulWidget to manage form state and lifecycle.
@@ -18,23 +19,19 @@ class _TrackScreenState extends State<TrackScreen> {
 
   // Controllers for text input fields
   final TextEditingController _valueController = TextEditingController();
-  final TextEditingController _unitController = TextEditingController();
+  // Removed _unitController
 
-  // State for dropdowns (simplified for now)
+  // State for dropdowns
   String _selectedCategory = 'Transportation'; // Default category
   String _selectedType = 'Car Trip'; // Default type
+  String _selectedUnit = AppUnits.kilometer; // New state for selected unit
 
   // State for timestamp (defaulting to now)
   DateTime _selectedTimestamp = DateTime.now();
 
   // Example lists for dropdowns (will come from a ViewModel/Model later)
-  final List<String> _categories = [
-    'Transportation',
-    'Home Energy',
-    'Diet',
-    'Waste',
-    'Consumption',
-  ];
+  final List<String> _categories =
+      AppUnits.unitsByCategory.keys.toList(); // Use keys from units map
   final Map<String, List<String>> _types = {
     'Transportation': ['Car Trip', 'Bus Trip', 'Train Trip', 'Flight'],
     'Home Energy': ['Electricity Usage', 'Gas Usage'],
@@ -44,7 +41,7 @@ class _TrackScreenState extends State<TrackScreen> {
   };
 
   // Keep track of the previous log message to trigger field clearing only on change.
-  String? _previousLogMessage;
+  String? _previousMessage;
 
   @override
   void initState() {
@@ -53,9 +50,13 @@ class _TrackScreenState extends State<TrackScreen> {
 
     // --- Debug: Pre-fill form fields for testing ---
     _valueController.text = '15.0'; // Sample value
-    _unitController.text = 'km'; // Sample unit
     _selectedCategory = 'Transportation'; // Sample category
-    _selectedType = 'Car Trip'; // Sample type
+    // Ensure _selectedType and _selectedUnit are valid for the initial _selectedCategory
+    _selectedType = _types[_selectedCategory]!.first;
+    _selectedUnit =
+        AppUnits
+            .unitsByCategory[_selectedCategory]!
+            .first; // Sample unit from constants
     _selectedTimestamp =
         DateTime.now(); // Sample timestamp (can adjust if needed for specific goal dates)
     // --- End Debug ---
@@ -78,21 +79,21 @@ class _TrackScreenState extends State<TrackScreen> {
     final currentMessage = currentLogMessage ?? currentErrorMessage;
 
     // If the message has changed and is a success message, clear the form and show Snackbar.
-    if (currentLogMessage != null &&
-        currentLogMessage != _previousLogMessage &&
-        currentLogMessage.contains('successfully')) {
+    if (currentMessage != null &&
+        currentMessage != _previousMessage &&
+        currentMessage.contains('successfully')) {
       // Check for success indicator
       // Use Future.microtask to defer UI actions.
       Future.microtask(() {
         _clearFormFields();
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(currentLogMessage)));
+        ).showSnackBar(SnackBar(content: Text(currentLogMessage ?? "-")));
       });
     }
     // If it's a new error message, show a Snackbar.
     else if (currentErrorMessage != null &&
-        currentErrorMessage != _previousLogMessage) {
+        currentErrorMessage != _previousMessage) {
       // Use Future.microtask to defer UI actions.
       Future.microtask(() {
         ScaffoldMessenger.of(
@@ -102,14 +103,14 @@ class _TrackScreenState extends State<TrackScreen> {
     }
 
     // Update the previous log message.
-    _previousLogMessage = currentMessage; // Update previous log/error message
+    _previousMessage = currentMessage; // Update previous log/error message
   }
 
   @override
   void dispose() {
     // Clean up controllers when the widget is removed.
     _valueController.dispose();
-    _unitController.dispose();
+    // Removed _unitController.dispose();
     super.dispose();
   }
 
@@ -160,10 +161,16 @@ class _TrackScreenState extends State<TrackScreen> {
     _formKey.currentState?.reset(); // Use form key reset for TextFormFields
     _valueController
         .clear(); // Clear controllers explicitly if needed (reset might cover this)
-    _unitController.clear(); // Clear controllers explicitly
+    // Removed _unitController.clear();
     setState(() {
       _selectedCategory = 'Transportation'; // Reset to default
-      _selectedType = 'Car Trip'; // Reset to default
+      _selectedType =
+          _types[_selectedCategory]!
+              .first; // Reset type to default for category
+      _selectedUnit =
+          AppUnits
+              .unitsByCategory[_selectedCategory]!
+              .first; // Reset unit to default for category
       _selectedTimestamp = DateTime.now(); // Reset to now
     });
   }
@@ -208,8 +215,9 @@ class _TrackScreenState extends State<TrackScreen> {
                   if (newValue != null) {
                     setState(() {
                       _selectedCategory = newValue;
-                      // Reset type when category changes
+                      // Reset type and unit when category changes
                       _selectedType = _types[newValue]!.first;
+                      _selectedUnit = AppUnits.unitsByCategory[newValue]!.first;
                     });
                   }
                 },
@@ -257,8 +265,8 @@ class _TrackScreenState extends State<TrackScreen> {
                 controller: _valueController,
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
-                  labelText: 'Value (e.g., distance, kWh, count)',
-                ),
+                  labelText: 'Value',
+                ), // Simplified label
                 validator: (value) {
                   // Add validator
                   if (value == null || value.isEmpty) {
@@ -272,17 +280,32 @@ class _TrackScreenState extends State<TrackScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Unit Input (could be a dropdown later based on category/type)
-              TextFormField(
-                // Use TextFormField for validation
-                controller: _unitController,
+              // Unit Dropdown (Replaced TextFormField)
+              DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
-                  labelText: 'Unit (e.g., km, mile, kWh, count)',
-                ), // Clarified label
+                  labelText: 'Unit',
+                ), // Simplified label
+                value: _selectedUnit,
+                items:
+                    AppUnits.unitsByCategory[_selectedCategory]!.map((
+                      String unit,
+                    ) {
+                      return DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedUnit = newValue;
+                    });
+                  }
+                },
                 validator: (value) {
                   // Add validator
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a unit';
+                    return 'Please select a unit';
                   }
                   return null;
                 },
@@ -345,7 +368,8 @@ class _TrackScreenState extends State<TrackScreen> {
                             final double? value = double.tryParse(
                               _valueController.text,
                             );
-                            final String unit = _unitController.text.trim();
+                            // Use the selected unit from state
+                            final String unit = _selectedUnit;
 
                             // Call the ViewModel method with collected data
                             trackViewModel.logActivity(

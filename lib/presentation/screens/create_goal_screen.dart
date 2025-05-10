@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import provider
 import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart'; // Import CreateGoalViewModel
 import 'package:intl/intl.dart'; // Import intl for date formatting
+import 'package:ecotrack/core/constants/app_units.dart'; // Import AppUnits constants
 
 // CreateGoalScreen is the View for adding a new goal.
 // It contains a form for goal details and interacts with CreateGoalViewModel.
@@ -20,14 +21,15 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _targetValueController = TextEditingController();
-  final TextEditingController _targetUnitController = TextEditingController();
+  // Removed _targetUnitController
 
   // State for dropdowns
   String _selectedType = 'FootprintReduction'; // Default type
   String _selectedStatus = 'Active'; // Default status
+  String _selectedTargetUnit =
+      AppUnits.kgCo2e; // New state for selected target unit
 
   // State for date pickers
-  // Initialize with time component adjusted for full day coverage
   DateTime _selectedStartDate = DateTime.now().copyWith(
     hour: 0,
     minute: 0,
@@ -53,6 +55,17 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
   ];
   final List<String> _goalStatuses = ['Active', 'Completed', 'Failed'];
 
+  // Relevant units for goal targets (simplified example)
+  final List<String> _targetUnits = [
+    AppUnits.kgCo2e,
+    AppUnits.kilometer,
+    AppUnits.mile,
+    AppUnits.kilowattHour,
+    AppUnits.count,
+    AppUnits.kilogram,
+    AppUnits.liter,
+  ];
+
   // Keep track of the previous message to trigger actions only on change.
   String? _previousMessage;
 
@@ -62,11 +75,13 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
     print('CreateGoalScreen: initState called'); // Debug log
 
     // --- Debug: Pre-fill form fields for testing ---
-    _nameController.text = 'Sample Activity Goal';
-    _descriptionController.text = 'Reduce car travel by logging trips.';
-    _targetValueController.text = '100.0';
-    _targetUnitController.text = 'km';
-    _selectedType = 'ActivityTarget'; // Or 'FootprintReduction'
+    _nameController.text =
+        'Sample Footprint Goal'; // Changed default for testing reduction
+    _descriptionController.text = 'Reduce overall footprint.';
+    _targetValueController.text = '50.0';
+    _selectedTargetUnit = AppUnits.kgCo2e; // Use constant for unit
+    _selectedType =
+        'FootprintReduction'; // Changed default for testing reduction
     _selectedStatus = 'Active';
     _selectedStartDate = DateTime.now().copyWith(
       hour: 0,
@@ -140,7 +155,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _targetValueController.dispose();
-    _targetUnitController.dispose();
+    // Removed _targetUnitController.dispose();
     super.dispose();
   }
 
@@ -208,6 +223,8 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('CreateGoalScreen: build called'); // Debug log
+
     // Watch the CreateGoalViewModel to react to state changes (isSaving, messages).
     // This context.watch is primarily for updating the UI based on ViewModel state.
     final createGoalViewModel = context.watch<CreateGoalViewModel>();
@@ -273,6 +290,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                   if (newValue != null) {
                     setState(() {
                       _selectedType = newValue;
+                      // Potentially update _selectedTargetUnit based on type here later
                     });
                   }
                 },
@@ -329,13 +347,27 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Target Unit Input
-              TextFormField(
-                controller: _targetUnitController,
+              // Target Unit Dropdown (Replaced TextFormField)
+              DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Target Unit'),
+                value: _selectedTargetUnit,
+                items:
+                    _targetUnits.map((String unit) {
+                      return DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedTargetUnit = newValue;
+                    });
+                  }
+                },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a unit';
+                    return 'Please select a target unit';
                   }
                   return null;
                 },
@@ -396,7 +428,8 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                               name: _nameController.text.trim(),
                               description: _descriptionController.text.trim(),
                               type: _selectedType,
-                              targetUnit: _targetUnitController.text.trim(),
+                              targetUnit:
+                                  _selectedTargetUnit, // Use selected unit
                               targetValue:
                                   targetValue!, // Use ! because validation ensures it's not null
                               startDate: _selectedStartDate,

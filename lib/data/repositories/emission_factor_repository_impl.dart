@@ -1,6 +1,8 @@
+import 'dart:async'; // Import async for StreamController
 import 'package:ecotrack/domain/entities/emission_factor.dart'; // Import the EmissionFactor entity
 import 'package:ecotrack/domain/repositories/emission_factor_repository.dart'; // Import the abstract repository interface
 import 'package:uuid/uuid.dart'; // Assuming uuid is already added for other repositories
+import 'package:ecotrack/core/constants/app_units.dart'; // Import AppUnits constants
 
 // In-memory implementation of the EmissionFactorRepository interface.
 // Provides sample emission factors from a static list.
@@ -13,7 +15,7 @@ class EmissionFactorRepositoryImpl implements EmissionFactorRepository {
       id: const Uuid().v4(),
       activityCategory: 'Transportation',
       activityType: 'Car Trip',
-      unit: 'km',
+      unit: AppUnits.kilometer, // Use constant
       co2ePerUnit: 0.21, // Example: kg CO2e per km for an average car
       source: 'Example Data Source A',
     ),
@@ -21,7 +23,7 @@ class EmissionFactorRepositoryImpl implements EmissionFactorRepository {
       id: const Uuid().v4(),
       activityCategory: 'Transportation',
       activityType: 'Car Trip',
-      unit: 'mile',
+      unit: AppUnits.mile, // Use constant
       co2ePerUnit: 0.34, // Example: kg CO2e per mile (0.21 * 1.60934)
       source: 'Example Data Source A',
     ),
@@ -29,7 +31,7 @@ class EmissionFactorRepositoryImpl implements EmissionFactorRepository {
       id: const Uuid().v4(),
       activityCategory: 'Transportation',
       activityType: 'Bus Trip',
-      unit: 'km',
+      unit: AppUnits.kilometer, // Use constant
       co2ePerUnit: 0.10, // Example: kg CO2e per km per passenger (average)
       source: 'Example Data Source B',
     ),
@@ -37,7 +39,7 @@ class EmissionFactorRepositoryImpl implements EmissionFactorRepository {
       id: const Uuid().v4(),
       activityCategory: 'Transportation',
       activityType: 'Train Trip',
-      unit: 'km',
+      unit: AppUnits.kilometer, // Use constant
       co2ePerUnit: 0.04, // Example: kg CO2e per km per passenger (average)
       source: 'Example Data Source B',
     ),
@@ -46,7 +48,7 @@ class EmissionFactorRepositoryImpl implements EmissionFactorRepository {
       id: const Uuid().v4(),
       activityCategory: 'Home Energy',
       activityType: 'Electricity Usage',
-      unit: 'kWh',
+      unit: AppUnits.kilowattHour, // Use constant
       co2ePerUnit: 0.233, // Example: kg CO2e per kWh (US average)
       source: 'Example Data Source C',
     ),
@@ -54,7 +56,9 @@ class EmissionFactorRepositoryImpl implements EmissionFactorRepository {
       id: const Uuid().v4(),
       activityCategory: 'Home Energy',
       activityType: 'Gas Usage',
-      unit: 'kWh', // Or other units like therms, m³
+      unit:
+          AppUnits
+              .kilowattHour, // Use constant (or other units like therms, m³)
       co2ePerUnit: 0.18, // Example: kg CO2e per kWh of natural gas
       source: 'Example Data Source C',
     ),

@@ -78,7 +78,7 @@ class GoalsScreen extends StatelessWidget {
           final progress = viewModel.getGoalProgress(goal.id);
           print(
             'GoalsScreen: Displaying goal "${goal.name}", retrieved progress: ${progress.toStringAsFixed(2)}%',
-          ); // Debug log
+          ); // New Debug log
 
           // Display each goal in a ListTile, including progress.
           return ListTile(
