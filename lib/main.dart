@@ -19,7 +19,7 @@ import 'package:ecotrack/data/repositories/activity_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/footprint_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/goal_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/emission_factor_repository_db_impl.dart';
-import 'package:ecotrack/data/repositories/resource_repository_impl.dart';
+import 'package:ecotrack/data/repositories/resource_repository_db_impl.dart'; // Using DbImpl
 
 // Import concrete Use Case implementations
 import 'package:ecotrack/domain/use_cases/log_activity_use_case_impl.dart';
@@ -160,12 +160,14 @@ void main() async {
                       .dispose(), // Dispose the repository (even if empty for consistency)
         ),
         Provider<ResourceRepository>(
-          // Provide ResourceRepositoryImpl (in-memory)
-          create: (_) => ResourceRepositoryImpl(),
+          // Provide ResourceRepositoryDbImpl
+          create:
+              (context) =>
+                  ResourceRepositoryDbImpl(context.read<DatabaseHelper>()),
           dispose:
               (_, repository) =>
                   repository
-                      .dispose(), // Dispose the repository (even if empty for consistency)
+                      .dispose(), // Dispose the repository (closes stream controller)
         ),
 
         // Provide concrete Use Case implementations.
@@ -353,12 +355,15 @@ void main() async {
         ),
 
         // Provide the ResourcesViewModel.
-        // It depends on GetResourcesUseCase.
+        // It depends on ResourceRepository for the stream.
         ChangeNotifierProvider<ResourcesViewModel>(
           // Provide ResourcesViewModel
           create:
               (context) => ResourcesViewModel(
-                context.read<ResourceRepository>(), // Inject ResourceRepository
+                context
+                    .read<
+                      ResourceRepository
+                    >(), // Inject ResourceRepository for stream
               ),
         ),
 

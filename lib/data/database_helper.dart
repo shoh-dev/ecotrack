@@ -21,8 +21,8 @@ class DatabaseHelper {
   static const String activityTable = 'activities';
   static const String footprintTable = 'footprint_entries';
   static const String goalTable = 'goals';
-  static const String emissionFactorTable =
-      'emission_factors'; // We can pre-populate this or load from elsewhere
+  static const String emissionFactorTable = 'emission_factors';
+  static const String resourceTable = 'resources'; // Resource table name
 
   // Column names (examples - will need to match entity properties)
   // Activity Table Columns
@@ -68,6 +68,17 @@ class DatabaseHelper {
   static const String columnFactorSource = 'source';
   static const String columnFactorEffectiveDate =
       'effectiveDate'; // Stored as INTEGER (Unix timestamp)
+
+  // Resource Table Columns (New)
+  static const String columnResourceId = 'id';
+  static const String columnResourceTitle = 'title';
+  static const String columnResourceDescription = 'description';
+  static const String columnResourceType = 'type';
+  static const String columnResourceUrl = 'url';
+  static const String columnResourceCategory = 'category';
+  static const String columnResourceImageUrl = 'imageUrl';
+  static const String columnResourcePublicationDate =
+      'publicationDate'; // Stored as INTEGER (Unix timestamp)
 
   // Get the database instance
   Future<Database> get database async {
@@ -153,11 +164,32 @@ class DatabaseHelper {
       )
     ''');
 
+    // Create Resource Table (New)
+    print(
+      'DatabaseHelper: Executing CREATE TABLE for $resourceTable...',
+    ); // New Debug log
+    await db.execute('''
+      CREATE TABLE $resourceTable (
+        $columnResourceId TEXT PRIMARY KEY,
+        $columnResourceTitle TEXT NOT NULL,
+        $columnResourceDescription TEXT,
+        $columnResourceType TEXT NOT NULL,
+        $columnResourceUrl TEXT,
+        $columnResourceCategory TEXT,
+        $columnResourceImageUrl TEXT,
+        $columnResourcePublicationDate INTEGER
+      )
+    ''');
+    print(
+      'DatabaseHelper: CREATE TABLE for $resourceTable finished.',
+    ); // New Debug log
+
     print('DatabaseHelper: Tables created.'); // Debug log
 
     // TODO: Consider pre-populating the emission_factors table here on first creation
-    // For now, we'll keep the in-memory emission factors for simplicity, but this is where
-    // you would insert default emission factors into the database.
+    // For now, the EmissionFactorRepositoryDbImpl constructor handles initial population.
+    // TODO: Consider pre-populating the resources table here on first creation
+    // For now, the ResourceRepositoryDbImpl constructor handles initial population.
   }
 
   // Handle database upgrades (add tables, columns, etc. in future versions)
@@ -167,6 +199,23 @@ class DatabaseHelper {
     ); // Debug log
     // Migration logic would go here for future database versions.
     // Example: if (oldVersion < 2) { await db.execute('ALTER TABLE ...'); }
+    // If upgrading from version 1 to 2, and adding the resources table:
+    // if (oldVersion < 2) {
+    //   print('DatabaseHelper: Adding $resourceTable table in upgrade...'); // Debug log
+    //   await db.execute('''
+    //     CREATE TABLE $resourceTable (
+    //       $columnResourceId TEXT PRIMARY KEY,
+    //       $columnResourceTitle TEXT NOT NULL,
+    //       $columnResourceDescription TEXT,
+    //       $columnResourceType TEXT NOT NULL,
+    //       $columnResourceUrl TEXT,
+    //       $columnResourceCategory TEXT,
+    //       $columnResourceImageUrl TEXT,
+    //       $columnResourcePublicationDate INTEGER
+    //     )
+    //   ''');
+    //    print('DatabaseHelper: $resourceTable table added in upgrade.'); // Debug log
+    // }
   }
 
   // Close the database connection

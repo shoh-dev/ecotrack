@@ -16,8 +16,8 @@ class ResourcesViewModel extends ChangeNotifier {
 
   // State properties for the Resources View:
   List<Resource> _resources = []; // Holds the list of resources
-  bool _isLoading =
-      false; // Indicates if resources are currently being loaded (initially true until first stream emission)
+  // _isLoading starts as false by default. The UI will handle the initial empty state display.
+  bool _isLoading = false;
   String? _errorMessage; // Holds an error message if fetching fails
 
   // Stream subscription to resources.
@@ -30,8 +30,8 @@ class ResourcesViewModel extends ChangeNotifier {
     ); // Debug log
     // Subscribe to the resource stream immediately when the ViewModel is created.
     _subscribeToResources(_resourceRepository);
-    // Set isLoading to true initially until the first stream emission is received.
-    _isLoading = true;
+    // Removed: _isLoading = true; // THIS LINE SHOULD BE REMOVED
+    // The UI will handle the initial empty state display by checking if _resources is empty.
   }
 
   // Getters to expose the state to the View:
@@ -47,13 +47,17 @@ class ResourcesViewModel extends ChangeNotifier {
     // Subscribe to the stream. The listener will be called whenever resources change.
     _resourcesSubscription = resourceRepository.watchResources().listen(
       (resources) {
+        print(
+          'ResourcesViewModel: Stream listener received ${resources.length} resources.',
+        ); // Debug log
+
         // When resources change, update the ViewModel's state.
         print(
           'ResourcesViewModel: Resources stream updated. Updating resources list...',
         ); // Debug log
         _resources = resources; // Update the list of resources
         print(
-          'ResourcesViewModel: Received ${resources.length} resources. Setting _isLoading = false.',
+          'ResourcesViewModel: Received ${_resources.length} resources. Setting _isLoading = false.',
         ); // Debug log
         _isLoading =
             false; // Data is loaded after the first emission, set loading to false
@@ -85,17 +89,9 @@ class ResourcesViewModel extends ChangeNotifier {
     );
   }
 
-  // Remove the old fetchResources method.
-  // @override
-  // Future<void> fetchResources({String? category}) async {
-  //   // This method is no longer needed as the stream subscription
-  //   // triggers updates automatically.
-  // }
-
   // Remember to dispose of resources by cancelling the subscription.
   @override
   void dispose() {
-    // Cancel the stream subscription to prevent memory leaks.
     _resourcesSubscription?.cancel();
     print(
       'ResourcesViewModel: Resources stream subscription cancelled.',

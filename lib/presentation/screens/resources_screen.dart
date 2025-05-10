@@ -15,13 +15,13 @@ class ResourcesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('ResourcesScreen: build called'); // Debug log
+    print('ResourcesScreen: build called'); // New Debug log
     // Watch the ResourcesViewModel to react to state changes (isLoading, messages, resources).
     // This widget will rebuild when the ViewModel notifies listeners.
     final resourcesViewModel = context.watch<ResourcesViewModel>();
     print(
       'ResourcesScreen: ViewModel has ${resourcesViewModel.resources.length} resources, isLoading: ${resourcesViewModel.isLoading}, errorMessage: ${resourcesViewModel.errorMessage}',
-    ); // Debug log
+    ); // New Debug log
 
     return Scaffold(
       appBar: AppBar(
@@ -39,10 +39,19 @@ class ResourcesScreen extends StatelessWidget {
 
   // Helper method to build the body content based on ViewModel state.
   Widget _buildBody(BuildContext context, ResourcesViewModel viewModel) {
+    print(
+      'ResourcesScreen:_buildBody called. Checking ViewModel state...',
+    ); // New Debug log
     if (viewModel.isLoading) {
+      print(
+        'ResourcesScreen:_buildBody: Showing loading indicator.',
+      ); // New Debug log
       // Show a loading indicator
       return const Center(child: CircularProgressIndicator());
     } else if (viewModel.errorMessage != null) {
+      print(
+        'ResourcesScreen:_buildBody: Showing error message.',
+      ); // New Debug log
       // Show an error message
       return Center(
         child: Padding(
@@ -55,6 +64,9 @@ class ResourcesScreen extends StatelessWidget {
         ),
       );
     } else if (viewModel.resources.isNotEmpty) {
+      print(
+        'ResourcesScreen:_buildBody: Displaying resources list (${viewModel.resources.length} items).',
+      ); // New Debug log
       // Display the list of resources
       return ListView.builder(
         itemCount: viewModel.resources.length,
@@ -89,6 +101,9 @@ class ResourcesScreen extends StatelessWidget {
         },
       );
     } else {
+      print(
+        'ResourcesScreen:_buildBody: Showing "No resources available" message.',
+      ); // New Debug log
       // No resources available
       return const Center(
         child: Padding(
