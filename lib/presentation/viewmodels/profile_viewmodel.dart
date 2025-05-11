@@ -16,6 +16,11 @@ class ProfileViewModel extends ChangeNotifier {
   String?
   _errorMessage; // Holds an error message if fetching fails (only for actual errors, not 'not found')
 
+  // --- New State for Additional Fields ---
+  String? _preferredUnits; // State for preferred units
+  int? _baselineYear; // State for baseline year
+  // --- End New State for Additional Fields ---
+
   // State for Saving:
   bool _isSaving = false; // Indicates if the profile is currently being saved
   String? _saveMessage; // Provides feedback after saving (success/error)
@@ -30,6 +35,11 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? get userProfile => _userProfile;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  // --- Getters for Additional Fields ---
+  String? get preferredUnits => _preferredUnits;
+  int? get baselineYear => _baselineYear;
+  // --- End Getters for Additional Fields ---
 
   // Getters for Saving State:
   bool get isSaving => _isSaving;
@@ -66,6 +76,15 @@ class ProfileViewModel extends ChangeNotifier {
         print(
           'ProfileViewModel: fetchUserProfile - Profile not found. Not setting error message.',
         ); // Debug log
+        // --- New: Initialize new fields to null if profile not found ---
+        _preferredUnits = null;
+        _baselineYear = null;
+        // --- End New ---
+      } else {
+        // --- New: Update new fields from fetched profile ---
+        _preferredUnits = _userProfile!.preferredUnits;
+        _baselineYear = _userProfile!.baselineYear;
+        // --- End New ---
       }
       print(
         'ProfileViewModel: fetchUserProfile - Calling notifyListeners() after fetch.',
@@ -80,6 +99,10 @@ class ProfileViewModel extends ChangeNotifier {
       _isLoading = false; // Set loading state to false
       _errorMessage =
           'Failed to load user profile: ${e.toString()}'; // Set error message for actual errors
+      // --- New: Clear new fields on fetch error ---
+      _preferredUnits = null;
+      _baselineYear = null;
+      // --- End New ---
       print(
         'ProfileViewModel: fetchUserProfile - Setting _isLoading = false and _errorMessage. Calling notifyListeners().',
       ); // Debug log
@@ -97,6 +120,10 @@ class ProfileViewModel extends ChangeNotifier {
     String? location,
     DateTime? memberSince,
     Map<String, dynamic>? settings,
+    // --- New Parameters ---
+    String? preferredUnits,
+    int? baselineYear,
+    // --- End New Parameters ---
   }) async {
     print('ProfileViewModel: saveUserProfile called.'); // Debug log
     if (id != null && id.isEmpty) {
@@ -126,6 +153,10 @@ class ProfileViewModel extends ChangeNotifier {
         location: location,
         memberSince: memberSince,
         settings: settings,
+        // --- New Fields ---
+        preferredUnits: preferredUnits,
+        baselineYear: baselineYear,
+        // --- End New Fields ---
       );
 
       // Call the Use Case to execute the save business logic.
@@ -138,6 +169,10 @@ class ProfileViewModel extends ChangeNotifier {
       _userProfile =
           savedProfile; // Update the profile in state with the result from the Use Case
       _saveMessage = 'Profile saved successfully!'; // Set success message
+      // --- New: Update new state variables from saved profile ---
+      _preferredUnits = _userProfile!.preferredUnits;
+      _baselineYear = _userProfile!.baselineYear;
+      // --- End New ---
       print(
         'ProfileViewModel: saveUserProfile - Setting _isSaving = false and _saveMessage. Calling notifyListeners() (in finally).',
       ); // Debug log

@@ -91,6 +91,9 @@ class DatabaseHelper {
       'memberSince'; // Stored as INTEGER (Unix timestamp)
   static const String columnProfileSettings =
       'settings'; // Stored as TEXT (JSON string)
+  static const String columnProfilePreferredUnits =
+      'preferredUnits'; // New column
+  static const String columnProfileBaselineYear = 'baselineYear'; // New column
 
   // Get the database instance
   Future<Database> get database async {
@@ -193,7 +196,7 @@ class DatabaseHelper {
     // Create User Profile Table (New)
     print(
       'DatabaseHelper: Executing CREATE TABLE for $userProfileTable...',
-    ); // New Debug log
+    ); // Debug log
     await db.execute('''
       CREATE TABLE $userProfileTable (
         $columnProfileId TEXT PRIMARY KEY,
@@ -201,12 +204,14 @@ class DatabaseHelper {
         $columnProfileEmail TEXT,
         $columnProfileLocation TEXT,
         $columnProfileMemberSince INTEGER,
-        $columnProfileSettings TEXT
+        $columnProfileSettings TEXT,
+        $columnProfilePreferredUnits TEXT,  -- New column
+        $columnProfileBaselineYear INTEGER -- New column
       )
     ''');
     print(
       'DatabaseHelper: CREATE TABLE for $userProfileTable finished.',
-    ); // New Debug log
+    ); // Debug log
 
     print('DatabaseHelper: Tables created.'); // Debug log
 
@@ -223,37 +228,12 @@ class DatabaseHelper {
     ); // Debug log
     // Migration logic would go here for future database versions.
     // Example: if (oldVersion < 2) { await db.execute('ALTER TABLE ...'); }
-    // If upgrading from version 1 to 2, and adding the resources table:
+    // If upgrading from version 1 to 2, and adding new columns to user_profile table:
     // if (oldVersion < 2) {
-    //   print('DatabaseHelper: Adding $resourceTable table in upgrade...'); // Debug log
-    //   await db.execute('''
-    //     CREATE TABLE $resourceTable (
-    //       $columnResourceId TEXT PRIMARY KEY,
-    //       $columnResourceTitle TEXT NOT NULL,
-    //       $columnResourceDescription TEXT,
-    //       $columnResourceType TEXT NOT NULL,
-    //       $columnResourceUrl TEXT,
-    //       $columnResourceCategory TEXT,
-    //       $columnResourceImageUrl TEXT,
-    //       $columnResourcePublicationDate INTEGER
-    //     )
-    //   ''');
-    //    print('DatabaseHelper: $resourceTable table added in upgrade.'); // Debug log
-    // }
-    // If upgrading from version 1 to 2, and adding the user_profile table:
-    // if (oldVersion < 2) {
-    //   print('DatabaseHelper: Adding $userProfileTable table in upgrade...'); // Debug log
-    //    await db.execute('''
-    //     CREATE TABLE $userProfileTable (
-    //       $columnProfileId TEXT PRIMARY KEY,
-    //       $columnProfileName TEXT NOT NULL,
-    //       $columnProfileEmail TEXT,
-    //       $columnProfileLocation TEXT,
-    //       $columnProfileMemberSince INTEGER,
-    //       $columnProfileSettings TEXT
-    //     )
-    //   ''');
-    //   print('DatabaseHelper: $userProfileTable table added in upgrade.'); // Debug log
+    //   print('DatabaseHelper: Adding new columns to $userProfileTable table in upgrade...'); // Debug log
+    //   await db.execute('ALTER TABLE $userProfileTable ADD COLUMN $columnProfilePreferredUnits TEXT');
+    //   await db.execute('ALTER TABLE $userProfileTable ADD COLUMN $columnProfileBaselineYear INTEGER');
+    //   print('DatabaseHelper: New columns added to $userProfileTable table in upgrade.'); // Debug log
     // }
   }
 

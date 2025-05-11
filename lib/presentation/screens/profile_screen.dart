@@ -22,13 +22,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _baselineYearController =
+      TextEditingController(); // New controller for baseline year
+
+  // State for dropdowns
+  // String? _selectedPreferredUnits; // New state for preferred units (optional)
+  // Using a simple list for now, could be enum or constants later
+  final List<String> _unitSystems = ['Metric', 'Imperial'];
+  String? _selectedUnitSystem; // State for selected unit system
 
   // Keep track of the previous save message to trigger actions only on change.
   String? _previousSaveMessage;
 
-  // --- New State for View/Edit Mode ---
+  // State for View/Edit Mode
   bool _isEditing = false; // Controls whether the form is editable
-  // --- End New State for View/Edit Mode ---
 
   @override
   void initState() {
@@ -62,7 +69,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fetchedProfile.email ?? ''; // Use empty string for null email
         _locationController.text =
             fetchedProfile.location ?? ''; // Use empty string for null location
-        // TODO: Populate settings fields if added later
+        _baselineYearController.text =
+            fetchedProfile.baselineYear?.toString() ??
+            ''; // Populate baseline year
+
+        // --- New: Populate new state variables from fetched profile ---
+        setState(() {
+          _selectedUnitSystem =
+              fetchedProfile.preferredUnits; // Populate preferred units
+        });
+        // --- End New ---
 
         // --- New: Set _isEditing to false after populating fields ---
         // This switches to the read-only view after the profile is loaded.
@@ -140,6 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _locationController.dispose();
+    _baselineYearController.dispose(); // Dispose new controller
 
     // Remove the listener added in initState.
     final viewModel = context.read<ProfileViewModel>();
@@ -162,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'), // App bar title
         backgroundColor: Theme.of(context).primaryColor,
         actions: [
-          // --- New: Add Edit button ---
+          // Add Edit button
           if (profileViewModel.userProfile != null &&
               !profileViewModel.isLoading &&
               !profileViewModel.isSaving &&
@@ -176,7 +193,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 });
               },
             ),
-          // --- End New ---
         ],
       ),
       body: _buildBody(
@@ -222,7 +238,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     }
-    // --- New Conditional Logic for View vs. Edit ---
     // If profile exists AND we are NOT editing, show the read-only view.
     else if (viewModel.userProfile != null && !_isEditing) {
       print(
@@ -286,9 +301,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 // No validator needed if optional
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // TODO: Add fields for preferred units, baseline year, etc. later
+              // --- New Fields for Profile ---
+              // Preferred Units Dropdown
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(labelText: 'Preferred Units'),
+                value: _selectedUnitSystem,
+                items:
+                    _unitSystems.map((String system) {
+                      return DropdownMenuItem<String>(
+                        value: system,
+                        child: Text(system),
+                      );
+                    }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedUnitSystem = newValue;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select preferred units';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Baseline Year Input
+              TextFormField(
+                controller: _baselineYearController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Baseline Year (Optional)',
+                ),
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    final year = int.tryParse(value);
+                    if (year == null ||
+                        year < 1900 ||
+                        year > DateTime.now().year) {
+                      // Basic year validation
+                      return 'Please enter a valid year';
+                    }
+                  }
+                  return null;
+                },
+              ),
+
+              // --- End New Fields ---
+              const SizedBox(height: 24),
 
               // Display loading indicator if saving (also handled by main loading check)
               if (viewModel.isSaving)
@@ -306,6 +369,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // Validate the form before attempting to save
                           if (_formKey.currentState!.validate()) {
                             // Form is valid, proceed with saving
+
+                            final int? baselineYear =
+                                _baselineYearController.text.trim().isNotEmpty
+                                    ? int.tryParse(
+                                      _baselineYearController.text.trim(),
+                                    )
+                                    : null; // Parse baseline year
 
                             // Call the ViewModel method with collected data.
                             // Pass the existing profile ID if updating, or null if creating.
@@ -326,6 +396,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   userProfile
                                       ?.memberSince, // Keep existing memberSince date
                               // settings: userProfile?.settings, // Keep existing settings or update
+                              // --- New Fields ---
+                              preferredUnits: _selectedUnitSystem,
+                              baselineYear: baselineYear,
+                              // --- End New Fields ---
                             );
 
                             // Snackbar and switching to read-only view will be handled in didChangeDependencies upon message change
@@ -338,7 +412,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
     }
-    // --- End New Conditional Logic ---
+  }
+
+  // Helper method to build a row for a profile detail.
+  Widget _buildProfileDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120, // Fixed width for labels for alignment
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
+      ],
+    );
   }
 
   // --- New Helper Method for Read-Only View ---
@@ -381,7 +471,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           if (profile.memberSince != null) const SizedBox(height: 8),
 
-          // TODO: Add display for preferred units, baseline year, settings etc. later
+          // --- New Fields Display ---
+          if (profile.preferredUnits != null &&
+              profile.preferredUnits!.isNotEmpty)
+            _buildProfileDetailRow('Preferred Units:', profile.preferredUnits!),
+          if (profile.preferredUnits != null &&
+              profile.preferredUnits!.isNotEmpty)
+            const SizedBox(height: 8),
+
+          if (profile.baselineYear != null)
+            _buildProfileDetailRow(
+              'Baseline Year:',
+              profile.baselineYear!.toString(),
+            ),
+          if (profile.baselineYear != null) const SizedBox(height: 8),
+
+          // --- End New Fields Display ---
+
+          // TODO: Add display for settings etc. later
           const SizedBox(height: 24),
 
           // No Save button in read-only view. Edit button is in AppBar.
@@ -389,22 +496,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  // Helper method to build a row for a profile detail.
-  Widget _buildProfileDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120, // Fixed width for labels for alignment
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
-      ],
-    );
-  }
-  // --- End New Helper Method for Read-Only View ---
 }

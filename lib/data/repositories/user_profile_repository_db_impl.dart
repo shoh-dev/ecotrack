@@ -10,9 +10,6 @@ class UserProfileRepositoryDbImpl implements UserProfileRepository {
   final DatabaseHelper _databaseHelper; // Dependency on DatabaseHelper
   final Uuid _uuid = const Uuid(); // Helper to generate unique IDs
 
-  // Table name constant (should ideally be in DatabaseHelper)
-  // static const String _userProfileTable = 'user_profile'; // Now in DatabaseHelper
-
   // Constructor: Inject the DatabaseHelper dependency.
   UserProfileRepositoryDbImpl(this._databaseHelper);
 
@@ -39,6 +36,12 @@ class UserProfileRepositoryDbImpl implements UserProfileRepository {
           profile.settings != null
               ? jsonEncode(profile.settings)
               : null, // Use ProfileSettings constant (TEXT)
+      // --- New Fields ---
+      DatabaseHelper.columnProfilePreferredUnits:
+          profile.preferredUnits, // Include preferredUnits
+      DatabaseHelper.columnProfileBaselineYear:
+          profile.baselineYear, // Include baselineYear
+      // --- End New Fields ---
     };
   }
 
@@ -68,15 +71,23 @@ class UserProfileRepositoryDbImpl implements UserProfileRepository {
               ? jsonDecode(map[DatabaseHelper.columnProfileSettings] as String)
                   as Map<String, dynamic>
               : null, // Use ProfileSettings constant
+      // --- New Fields ---
+      preferredUnits:
+          map[DatabaseHelper.columnProfilePreferredUnits]
+              as String?, // Read preferredUnits
+      baselineYear:
+          map[DatabaseHelper.columnProfileBaselineYear]
+              as int?, // Read baselineYear
+      // --- End New Fields ---
     );
   }
 
-  // Add dispose method (empty for now as no streams/resources to close)
   @override
   void dispose() {
     print(
       'UserProfileRepositoryDbImpl: Dispose called (no streams to close).',
     ); // For demonstration
+    // No StreamController in this repository currently.
   }
 
   @override

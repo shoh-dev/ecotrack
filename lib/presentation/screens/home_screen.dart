@@ -4,10 +4,11 @@ import 'package:ecotrack/presentation/viewmodels/dashboard_viewmodel.dart'; // I
 // No longer need AppViewModel import here as we don't listen to its index directly.
 // import 'package:ecotrack/presentation/viewmodels/app_viewmodel.dart';
 import 'package:ecotrack/domain/entities/footprint_entry.dart'; // Import FootprintEntry for type hinting
+// Removed fl_chart import
 
 // HomeScreen is the View for the Dashboard.
 // It is a StatelessWidget that consumes the DashboardViewModel,
-// which now reacts to changes in the ActivityRepository stream.
+// which now reacts to changes in the ActivityRepository stream and provides historical data.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -15,9 +16,13 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('HomeScreen: build called'); // Debug log
     // Watch the DashboardViewModel to react to state changes (isLoading, messages, data).
     // This widget will rebuild when the ViewModel notifies listeners.
     final dashboardViewModel = context.watch<DashboardViewModel>();
+    print(
+      'HomeScreen: ViewModel state - isLoading: ${dashboardViewModel.isLoading}, errorMessage: ${dashboardViewModel.errorMessage}, latestFootprint: ${dashboardViewModel.latestFootprint != null}, history count: ${dashboardViewModel.footprintHistory.length}',
+    ); // Debug log
 
     return Scaffold(
       appBar: AppBar(
@@ -25,60 +30,77 @@ class HomeScreen extends StatelessWidget {
         backgroundColor:
             Theme.of(context).primaryColor, // Use primary color from theme
       ),
-      body: Center(
-        child: _buildBody(
-          context,
-          dashboardViewModel,
-        ), // Delegate building the body based on state
-      ),
+      body: _buildBody(
+        context,
+        dashboardViewModel,
+      ), // Delegate building the body based on state
     );
   }
 
   // Helper method to build the body content based on ViewModel state.
   Widget _buildBody(BuildContext context, DashboardViewModel viewModel) {
+    print(
+      'HomeScreen:_buildBody called. Checking ViewModel state...',
+    ); // Debug log
+    print(
+      'HomeScreen:_buildBody: isLoading: ${viewModel.isLoading}, errorMessage: ${viewModel.errorMessage}, latestFootprint: ${viewModel.latestFootprint != null}, history count: ${viewModel.footprintHistory.length}',
+    ); // Debug log
+
     if (viewModel.isLoading) {
       // Show a loading indicator
-      return const CircularProgressIndicator();
+      return const Center(child: CircularProgressIndicator());
     } else if (viewModel.errorMessage != null) {
       // Show an error message
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(
-          'Error: ${viewModel.errorMessage}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.red, fontSize: 16),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error: ${viewModel.errorMessage}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+          ),
         ),
       );
-    } else if (viewModel.latestFootprint != null) {
-      // Show the latest footprint data
-      final footprint = viewModel.latestFootprint!;
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const Text(
-            'Your Latest Footprint Estimate:',
-            style: TextStyle(fontSize: 18),
+    } else if (viewModel.latestFootprint != null ||
+        viewModel.footprintHistory.isNotEmpty) {
+      // Display the latest footprint if data is available.
+      // We are not displaying the chart in this version.
+      return SingleChildScrollView(
+        // Use SingleChildScrollView for vertical scrolling
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.stretch, // Stretch content horizontally
+            children: <Widget>[
+              // Display latest footprint if available
+              if (viewModel.latestFootprint != null) ...[
+                const Text(
+                  'Your Latest Footprint Estimate:',
+                  style: TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  // Display total CO2e, formatted (formatting can be added later)
+                  '${viewModel.latestFootprint!.totalCo2e.toStringAsFixed(2)} kg CO2e',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  // Display timestamp, formatted
+                  'as of ${viewModel.latestFootprint!.timestamp.toLocal().toString().split('.')[0]}', // Basic formatting
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                // Removed chart related widgets and logic from here
+              ],
+              // We can add other dashboard elements here later, like category breakdown text.
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            // Display total CO2e, formatted (formatting can be added later)
-            '${footprint.totalCo2e.toStringAsFixed(2)} kg CO2e',
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            // Display timestamp, formatted
-            'as of ${footprint.timestamp.toLocal().toString().split('.')[0]}', // Basic formatting
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-          // We can add category breakdown visualization here later
-          // const SizedBox(height: 20),
-          // Text('Category Breakdown: ${footprint.categoryBreakdown ?? 'N/A'}'),
-        ],
+        ),
       );
     } else {
       // No data available (e.g., first time user)
