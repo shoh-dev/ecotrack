@@ -1,9 +1,11 @@
 import 'package:ecotrack/domain/entities/goal.dart'; // Import the Goal entity
 import 'package:ecotrack/domain/entities/activity.dart'; // Import the Activity entity
 import 'package:ecotrack/domain/entities/emission_factor.dart'; // Import EmissionFactor entity
+import 'package:ecotrack/domain/entities/user_profile.dart'; // Import UserProfile entity
 import 'package:ecotrack/domain/repositories/activity_repository.dart'; // Import the ActivityRepository interface
 import 'package:ecotrack/domain/repositories/footprint_repository.dart'; // Import the FootprintRepository interface
 import 'package:ecotrack/domain/repositories/emission_factor_repository.dart'; // Import EmissionFactorRepository interface
+import 'package:ecotrack/domain/repositories/user_profile_repository.dart'; // New: Import UserProfileRepository interface
 import 'package:ecotrack/domain/use_cases/calculate_goal_progress_use_case.dart'; // Import the abstract use case interface
 
 // Concrete implementation of the CalculateGoalProgressUseCase.
@@ -15,13 +17,16 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
   _footprintRepository; // Dependency on FootprintRepository
   final EmissionFactorRepository
   _emissionFactorRepository; // Dependency on EmissionFactorRepository
+  final UserProfileRepository
+  _userProfileRepository; // New: Dependency on UserProfileRepository
 
   // Constructor: Inject dependencies.
   CalculateGoalProgressUseCaseImpl(
     this._activityRepository,
     this._footprintRepository,
     this._emissionFactorRepository,
-  );
+    this._userProfileRepository,
+  ); // Inject UserProfileRepository
 
   @override
   Future<double> execute(Goal goal) async {
@@ -33,17 +38,36 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
     ); // Debug log
     print('Goal Details Map: ${goal.details}'); // Debug log
 
+    // Get the user profile to access location for location-based factors.
+    final userProfile = await _userProfileRepository.getUserProfile();
+    print(
+      'CalculateGoalProgressUseCase: Fetched user profile (found: ${userProfile != null}). Location: ${userProfile?.location}',
+    ); // New Debug log
+
     // Business logic for different goal types.
     if (goal.type == 'ActivityTarget') {
-      // --- Activity Target Logic (Existing and Working) ---
+      // --- Activity Target Logic (Debugging) ---
+      print(
+        'CalculateGoalProgressUseCase (ActivityTarget): Calculating progress...',
+      ); // Debug log
+      print(
+        'Goal Details (ActivityTarget): Type: ${goal.type}, Target: ${goal.targetValue} ${goal.targetUnit}, Dates: ${goal.startDate.toIso8601String()} to ${goal.endDate.toIso8601String()}',
+      ); // Debug log
+      print('Goal Details Map (ActivityTarget): ${goal.details}'); // Debug log
+
       final relevantActivities = await _activityRepository.getActivities(
         startDate: goal.startDate,
         endDate: goal.endDate,
       );
 
       print(
-        'CalculateGoalProgressUseCase (ActivityTarget): Fetched ${relevantActivities.length} activities within date range.',
+        'CalculateGoalProgressUseCase (ActivityTarget): Fetched ${relevantActivities.length} activities within date range (${goal.startDate.toIso8601String()} to ${goal.endDate.toIso8601String()}).',
       ); // Debug log
+      for (final activity in relevantActivities) {
+        print(
+          '  - Activity within range: Category: ${activity.category}, Type: ${activity.type}, Value: ${activity.value} ${activity.unit}, Timestamp: ${activity.timestamp.toIso8601String()}',
+        ); // Debug log
+      }
 
       double accumulatedValue = 0.0;
       final filteredActivities =
@@ -59,12 +83,22 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
                 activity.unit.toLowerCase() ==
                     goal.targetUnit
                         .toLowerCase(); // Basic unit check, case-insensitive
+
+            print(
+              '  - Filtering Activity: ${activity.type} (${activity.value} ${activity.unit}). Matches Category: $matchesCategory, Matches Type: $matchesType, Matches Unit: $matchesUnit',
+            ); // Debug log
+
             return matchesCategory && matchesType && matchesUnit;
           }).toList();
 
       print(
         'CalculateGoalProgressUseCase (ActivityTarget): ${filteredActivities.length} activities matched goal details after filtering.',
       ); // Debug log
+      for (final activity in filteredActivities) {
+        print(
+          '  - Filtered Activity (Matches): Category: ${activity.category}, Type: ${activity.type}, Value: ${activity.value} ${activity.unit}, Timestamp: ${activity.timestamp.toIso8601String()}',
+        ); // Debug log
+      }
 
       for (final activity in filteredActivities) {
         accumulatedValue += activity.value;
@@ -97,7 +131,7 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
       ) async {
         double totalCo2e = 0.0;
         for (final activity in activities) {
-          // Use the injected EmissionFactorRepository to get the factor.
+          // Use the injected EmissionFactorRepository to get the factor, passing details and location.
           final factor = await _emissionFactorRepository.getFactorForActivity(
             activityCategory: activity.category,
             activityType: activity.type,
@@ -105,6 +139,8 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
             timestamp:
                 activity
                     .timestamp, // Pass timestamp if factors are time-sensitive
+            details: activity.details, // Pass activity details
+            location: userProfile?.location, // Pass user location
           );
           if (factor != null) {
             totalCo2e += activity.value * factor.co2ePerUnit;
@@ -176,6 +212,8 @@ class CalculateGoalProgressUseCaseImpl implements CalculateGoalProgressUseCase {
       ); // Debug log
 
       // Calculate baseline footprint from activities in the baseline period using emission factors.
+      // If no activities before, assume a baseline (e.g., the average of the first few activities, or 0 if no history).
+      // For simplicity here, let's calculate from activities before the goal.
       final baselineFootprint = await _calculateFootprintForActivities(
         activitiesInBaselinePeriod,
       );

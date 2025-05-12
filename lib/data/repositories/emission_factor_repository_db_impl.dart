@@ -1,3 +1,5 @@
+import 'dart:async'; // Import async for StreamController
+import 'package:ecotrack/domain/entities/resource.dart';
 import 'package:sqflite/sqflite.dart'; // Import sqflite
 import 'package:ecotrack/domain/entities/emission_factor.dart'; // Import the EmissionFactor entity
 import 'package:ecotrack/domain/repositories/emission_factor_repository.dart'; // Import the abstract repository interface
@@ -10,27 +12,42 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
   final DatabaseHelper _databaseHelper; // Dependency on DatabaseHelper
   final Uuid _uuid = const Uuid(); // Helper to generate unique IDs
 
+  // StreamController for watchResources. For static data, it mainly emits the list once.
+  final _resourcesController =
+      StreamController<
+        List<Resource>
+      >.broadcast(); // Note: This controller is for Resources, not EmissionFactors. EmissionFactorRepository is not reactive in this implementation.
+
   // Constructor: Inject the DatabaseHelper dependency.
   EmissionFactorRepositoryDbImpl(this._databaseHelper) {
-    // In a real app, you might load default factors into the DB here if it's empty.
-    // For this implementation, we assume the _onCreate method in DatabaseHelper
-    // would handle initial population or factors are loaded via another mechanism.
-    // We'll add a simple check/populate logic for demonstration.
+    // Check if factors exist and populate if not.
     _checkAndPopulateDefaultFactors();
+    print(
+      'EmissionFactorRepositoryDbImpl: Constructor finished. _checkAndPopulateDefaultFactors called.',
+    ); // Debug log
   }
 
   // Helper method to check if factors exist and populate if not.
+  // This is where you define your default factors.
   Future<void> _checkAndPopulateDefaultFactors() async {
+    print(
+      'EmissionFactorRepositoryDbImpl: _checkAndPopulateDefaultFactors starting...',
+    ); // Debug log
     final db = await _databaseHelper.database;
-    final count = Sqflite.firstIntValue(
+
+    final factorsCount = Sqflite.firstIntValue(
       await db.rawQuery(
         'SELECT COUNT(*) FROM ${DatabaseHelper.emissionFactorTable}',
       ),
     );
 
-    if (count == 0) {
+    print(
+      'EmissionFactorRepositoryDbImpl: Checking emission factor count. Found $factorsCount.',
+    ); // Debug log
+
+    if (factorsCount == 0) {
       print(
-        'EmissionFactorRepositoryDbImpl: Database is empty. Populating with default factors...',
+        'EmissionFactorRepositoryDbImpl: Emission factors table is empty. Populating with default factors...',
       ); // Debug log
       // Define default factors (same as our in-memory list)
       final List<EmissionFactor> defaultFactors = [
@@ -85,6 +102,19 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
           source: 'Example Data Source C',
         ),
         // Add more factors for other categories (Diet, Waste, Consumption) later
+        // Example with details:
+        EmissionFactor(
+          id: _uuid.v4(),
+          activityCategory: 'Transportation',
+          activityType: 'Car Trip',
+          unit: 'km',
+          co2ePerUnit: 0.18, // Example: kg CO2e per km for a Small Car
+          source: 'Example Data Source A',
+          // You would need columns in the DB table for details like 'vehicleType'
+          // and update _toMap/_fromMap to handle them.
+          // For this simplified DB impl, we'll just match on category/type/unit.
+          // details: {'vehicleType': 'Small Car'},
+        ),
       ];
 
       // Insert default factors into the database
@@ -92,50 +122,73 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
       for (final factor in defaultFactors) {
         batch.insert(DatabaseHelper.emissionFactorTable, _toMap(factor));
       }
+      print(
+        'ResourceRepositoryDbImpl: Starting batch commit for population.',
+      ); // Debug log
       await batch.commit(noResult: true);
       print(
-        'EmissionFactorRepositoryDbImpl: Default factors populated.',
+        'ResourceRepositoryDbImpl: Batch commit finished. Default factors populated.',
       ); // Debug log
     } else {
       print(
-        'EmissionFactorRepositoryDbImpl: Emission factors already exist in database ($count factors).',
+        'EmissionFactorRepositoryDbImpl: Emission factors already exist in database ($factorsCount factors).',
       ); // Debug log
     }
+    print(
+      'EmissionFactorRepositoryDbImpl: _checkAndPopulateDefaultFactors finished.',
+    ); // Debug log
   }
 
   // Helper method to convert EmissionFactor entity to a database Map.
   Map<String, dynamic> _toMap(EmissionFactor factor) {
     return {
       DatabaseHelper.columnFactorId:
-          factor.id.isEmpty ? _uuid.v4() : factor.id, // Generate ID if empty
-      DatabaseHelper.columnFactorActivityCategory: factor.activityCategory,
-      DatabaseHelper.columnFactorActivityType: factor.activityType,
-      DatabaseHelper.columnFactorUnit: factor.unit,
-      DatabaseHelper.columnFactorCo2ePerUnit: factor.co2ePerUnit,
-      DatabaseHelper.columnFactorSource: factor.source,
+          factor.id.isEmpty ? _uuid.v4() : factor.id, // Use FactorId constant
+      DatabaseHelper.columnFactorActivityCategory:
+          factor.activityCategory, // Use FactorActivityCategory constant
+      DatabaseHelper.columnFactorActivityType:
+          factor.activityType, // Use FactorActivityType constant
+      DatabaseHelper.columnFactorUnit: factor.unit, // Use FactorUnit constant
+      DatabaseHelper.columnFactorCo2ePerUnit:
+          factor.co2ePerUnit, // Use FactorCo2ePerUnit constant
+      DatabaseHelper.columnFactorSource:
+          factor.source, // Use FactorSource constant
       DatabaseHelper.columnFactorEffectiveDate:
           factor
               .effectiveDate
-              ?.millisecondsSinceEpoch, // Convert DateTime to Unix timestamp (INTEGER)
+              ?.millisecondsSinceEpoch, // Use FactorEffectiveDate constant (INTEGER)
+      // Add columns for details if needed in the DB schema
+      // 'applicableVehicleType': factor.details?['vehicleType'],
     };
   }
 
   // Helper method to convert a database Map to an EmissionFactor entity.
   EmissionFactor _fromMap(Map<String, dynamic> map) {
     return EmissionFactor(
-      id: map[DatabaseHelper.columnFactorId] as String,
+      id: map[DatabaseHelper.columnFactorId] as String, // Use FactorId constant
       activityCategory:
-          map[DatabaseHelper.columnFactorActivityCategory] as String,
-      activityType: map[DatabaseHelper.columnFactorActivityType] as String,
-      unit: map[DatabaseHelper.columnFactorUnit] as String,
-      co2ePerUnit: map[DatabaseHelper.columnFactorCo2ePerUnit] as double,
-      source: map[DatabaseHelper.columnFactorSource] as String?,
+          map[DatabaseHelper.columnFactorActivityCategory]
+              as String, // Use FactorActivityCategory constant
+      activityType:
+          map[DatabaseHelper.columnFactorActivityType]
+              as String, // Use FactorActivityType constant
+      unit:
+          map[DatabaseHelper.columnFactorUnit]
+              as String, // Use FactorUnit constant
+      co2ePerUnit:
+          map[DatabaseHelper.columnFactorCo2ePerUnit]
+              as double, // Use FactorCo2ePerUnit constant
+      source:
+          map[DatabaseHelper.columnFactorSource]
+              as String?, // Use FactorSource constant
       effectiveDate:
           map[DatabaseHelper.columnFactorEffectiveDate] != null
               ? DateTime.fromMillisecondsSinceEpoch(
                 map[DatabaseHelper.columnFactorEffectiveDate] as int,
               )
-              : null, // Convert Unix timestamp back to DateTime
+              : null, // Use FactorEffectiveDate constant
+      // Read details from DB columns if they exist
+      // details: map['applicableVehicleType'] != null ? {'vehicleType': map['applicableVehicleType']} : null,
     );
   }
 
@@ -154,17 +207,17 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
 
     print(
       'EmissionFactorRepositoryDbImpl: Getting all factors from database.',
-    ); // For demonstration
+    ); // Debug log
 
     // Query the database
     final List<Map<String, dynamic>> maps = await db.query(
-      DatabaseHelper.emissionFactorTable,
-      // orderBy: '${DatabaseHelper.columnFactorActivityCategory} ASC', // Optional ordering
+      DatabaseHelper.emissionFactorTable, // Use the correct table name
+      // orderBy: '${DatabaseHelper.columnFactorEffectiveDate} DESC', // Optional ordering
     );
 
     print(
       'EmissionFactorRepositoryDbImpl: Retrieved ${maps.length} factor maps.',
-    ); // For demonstration
+    ); // Debug log
 
     // Convert the list of Maps to a list of EmissionFactor entities
     return List.generate(maps.length, (i) {
@@ -178,20 +231,38 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
     required String activityType,
     required String unit,
     DateTime? timestamp, // Timestamp can be used for time-sensitive factors
+    Map<String, dynamic>? details, // New: Additional activity details
+    String? location, // New: User's location/region
   }) async {
     final db = await _databaseHelper.database;
 
     print(
-      'EmissionFactorRepositoryDbImpl: Looking up factor in database for Category: $activityCategory, Type: $activityType, Unit: $unit',
-    ); // For demonstration
+      'EmissionFactorRepositoryDbImpl: Looking up factor in database for Category: $activityCategory, Type: $activityType, Unit: $unit, Details: $details, Location: $location',
+    ); // New Debug log
 
     // Build the WHERE clause for matching category, type, and unit (case-insensitive for unit).
+    // Add filtering based on details and location if the DB schema supports it.
     final List<String> whereClauses = [
       '${DatabaseHelper.columnFactorActivityCategory} = ?',
       '${DatabaseHelper.columnFactorActivityType} = ?',
       'LOWER(${DatabaseHelper.columnFactorUnit}) = LOWER(?)', // Case-insensitive unit match
     ];
     final List<dynamic> whereArgs = [activityCategory, activityType, unit];
+
+    // --- New: Add filtering based on details and location (requires DB schema update) ---
+    // This is a simplified example. Real implementation needs careful mapping of details keys to DB columns.
+    // if (details != null) {
+    //   if (details.containsKey('vehicleType')) {
+    //      whereClauses.add('applicableVehicleType = ?'); // Assuming 'applicableVehicleType' column exists
+    //      whereArgs.add(details['vehicleType']);
+    //   }
+    //   // Add more detail filtering as needed
+    // }
+    // if (location != null) {
+    //   whereClauses.add('applicableRegion = ?'); // Assuming 'applicableRegion' column exists
+    //   whereArgs.add(location);
+    // }
+    // --- End New ---
 
     // Add logic for time-sensitive factors if needed (e.g., filter by effectiveDate <= timestamp)
     // if (timestamp != null) {
@@ -205,7 +276,7 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
 
     // Query the database, limit to 1 as we expect at most one factor per criteria
     final List<Map<String, dynamic>> maps = await db.query(
-      DatabaseHelper.emissionFactorTable,
+      DatabaseHelper.emissionFactorTable, // Use the correct table name
       where: whereString,
       whereArgs: whereArgs,
       // orderBy: orderBy, // Apply ordering if using time-sensitive factors
@@ -226,7 +297,6 @@ class EmissionFactorRepositoryDbImpl implements EmissionFactorRepository {
     }
   }
 
-  // Emission factors are typically not created/updated by the user through the app UI,
-  // so saveFactor and deleteFactor methods are not included here.
-  // If needed, they would interact with the database using db.insert, db.update, db.delete.
+  // Methods for adding/updating/deleting resources are not included here
+  // as resources are typically static data managed outside the user UI.
 }

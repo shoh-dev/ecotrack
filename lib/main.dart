@@ -13,7 +13,7 @@ import 'package:ecotrack/presentation/viewmodels/goals_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/create_goal_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/goal_details_viewmodel.dart';
 import 'package:ecotrack/presentation/viewmodels/resources_viewmodel.dart';
-import 'package:ecotrack/presentation/viewmodels/profile_viewmodel.dart'; // Import ProfileViewModel
+import 'package:ecotrack/presentation/viewmodels/profile_viewmodel.dart';
 
 // Import concrete Repository implementations
 import 'package:ecotrack/data/repositories/activity_repository_db_impl.dart';
@@ -21,7 +21,7 @@ import 'package:ecotrack/data/repositories/footprint_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/goal_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/emission_factor_repository_db_impl.dart';
 import 'package:ecotrack/data/repositories/resource_repository_db_impl.dart';
-import 'package:ecotrack/data/repositories/user_profile_repository_db_impl.dart'; // Import UserProfileRepositoryDbImpl
+import 'package:ecotrack/data/repositories/user_profile_repository_db_impl.dart';
 
 // Import concrete Use Case implementations
 import 'package:ecotrack/domain/use_cases/log_activity_use_case_impl.dart';
@@ -34,8 +34,8 @@ import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/update_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/delete_goal_use_case_impl.dart';
 import 'package:ecotrack/domain/use_cases/get_resources_use_case_impl.dart';
-import 'package:ecotrack/domain/use_cases/get_user_profile_use_case_impl.dart'; // Import GetUserProfileUseCaseImpl
-import 'package:ecotrack/domain/use_cases/save_user_profile_use_case_impl.dart'; // Import SaveUserProfileUseCaseImpl
+import 'package:ecotrack/domain/use_cases/get_user_profile_use_case_impl.dart';
+import 'package:ecotrack/domain/use_cases/save_user_profile_use_case_impl.dart';
 
 // Import abstract Repository interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/repositories/activity_repository.dart';
@@ -43,7 +43,7 @@ import 'package:ecotrack/domain/repositories/footprint_repository.dart';
 import 'package:ecotrack/domain/repositories/goal_repository.dart';
 import 'package:ecotrack/domain/repositories/emission_factor_repository.dart';
 import 'package:ecotrack/domain/repositories/resource_repository.dart';
-import 'package:ecotrack/domain/repositories/user_profile_repository.dart'; // Import UserProfileRepository abstract
+import 'package:ecotrack/domain/repositories/user_profile_repository.dart';
 
 // Import abstract Use Case interfaces (needed for type hinting in Provider)
 import 'package:ecotrack/domain/use_cases/log_activity_use_case.dart';
@@ -56,14 +56,15 @@ import 'package:ecotrack/domain/use_cases/get_goal_by_id_use_case.dart';
 import 'package:ecotrack/domain/use_cases/update_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/delete_goal_use_case.dart';
 import 'package:ecotrack/domain/use_cases/get_resources_use_case.dart';
-import 'package:ecotrack/domain/use_cases/get_user_profile_use_case.dart'; // Import GetUserProfileUseCase abstract
-import 'package:ecotrack/domain/use_cases/save_user_profile_use_case.dart'; // Import SaveUserProfileUseCase abstract
+import 'package:ecotrack/domain/use_cases/get_user_profile_use_case.dart';
+import 'package:ecotrack/domain/use_cases/save_user_profile_use_case.dart';
 
 // Import DatabaseHelper
 import 'package:ecotrack/data/database_helper.dart';
 
 // Import Screens/Containers
 import 'package:ecotrack/presentation/screens/main_screen_container.dart';
+import 'package:ecotrack/presentation/screens/onboarding_screen.dart'; // Import OnboardingScreen
 
 // --- Debug Flag ---
 // Set to true to delete the database on app start for testing.
@@ -110,6 +111,11 @@ void main() async {
   final databaseHelper = DatabaseHelper();
   // Initialize the database before running the app
   await databaseHelper.database; // Await database initialization
+
+  // Create the AppViewModel instance early to check onboarding status
+  final appViewModel = AppViewModel();
+  // Check the initial onboarding status (will use persistence later)
+  await appViewModel.checkOnboardingStatus();
 
   // We use MultiProvider to provide multiple dependencies at the root.
   runApp(
@@ -206,7 +212,7 @@ void main() async {
                     >(), // Get FootprintRepository from providers
               ),
         ),
-        // CalculateFootprintUseCase depends on ActivityRepository AND EmissionFactorRepository.
+        // CalculateFootprintUseCase depends on ActivityRepository AND EmissionFactorRepository AND UserProfileRepository.
         Provider<CalculateFootprintUseCase>(
           create:
               (context) => CalculateFootprintUseCaseImpl(
@@ -218,6 +224,10 @@ void main() async {
                     .read<
                       EmissionFactorRepository
                     >(), // Inject EmissionFactorRepository
+                context
+                    .read<
+                      UserProfileRepository
+                    >(), // Inject UserProfileRepository
               ),
         ),
         // CreateGoalUseCase depends on GoalRepository.
@@ -240,7 +250,7 @@ void main() async {
                     >(), // Get GoalRepository from providers
               ),
         ),
-        // CalculateGoalProgressUseCase depends on ActivityRepository, FootprintRepository, AND EmissionFactorRepository.
+        // CalculateGoalProgressUseCase depends on ActivityRepository, FootprintRepository, EmissionFactorRepository, AND UserProfileRepository.
         Provider<CalculateGoalProgressUseCase>(
           create:
               (context) => CalculateGoalProgressUseCaseImpl(
@@ -254,6 +264,10 @@ void main() async {
                     .read<
                       EmissionFactorRepository
                     >(), // Inject EmissionFactorRepository
+                context
+                    .read<
+                      UserProfileRepository
+                    >(), // Inject UserProfileRepository
               ),
         ),
         // GetGoalByIdUseCase depends on GoalRepository.
@@ -295,7 +309,6 @@ void main() async {
         ),
         // GetUserProfileUseCase depends on UserProfileRepository.
         Provider<GetUserProfileUseCase>(
-          // Provide GetUserProfileUseCaseImpl
           create:
               (context) => GetUserProfileUseCaseImpl(
                 context
@@ -306,7 +319,6 @@ void main() async {
         ),
         // SaveUserProfileUseCase depends on UserProfileRepository.
         Provider<SaveUserProfileUseCase>(
-          // Provide SaveUserProfileUseCaseImpl
           create:
               (context) => SaveUserProfileUseCaseImpl(
                 context
@@ -316,10 +328,8 @@ void main() async {
               ),
         ),
 
-        // Provide the AppViewModel first, as other Viewmodels might depend on it (e.g., Dashboard).
-        ChangeNotifierProvider<AppViewModel>(
-          create: (context) => AppViewModel(),
-        ),
+        // Provide the AppViewModel. This instance is created early in main.
+        ChangeNotifierProvider<AppViewModel>.value(value: appViewModel),
 
         // Provide the DashboardViewModel.
         // Inject its dependencies, including ActivityRepository for the stream.
@@ -433,16 +443,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EcoTrack', // App title
-      theme: ThemeData(
-        primarySwatch:
-            Colors.green, // Using a green primary color as per design system
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      // Set MainScreenContainer as the home screen
-      home: const MainScreenContainer(),
-      debugShowCheckedModeBanner: false, // Hide debug banner
+    // Watch the AppViewModel to decide whether to show onboarding or the main app.
+    return Consumer<AppViewModel>(
+      builder: (context, appViewModel, child) {
+        return MaterialApp(
+          title: 'EcoTrack', // App title
+          theme: ThemeData(
+            primarySwatch:
+                Colors
+                    .green, // Using a green primary color as per design system
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+          ),
+          // Show OnboardingScreen if onboarding is not complete, otherwise show MainScreenContainer.
+          home:
+              appViewModel.isOnboardingComplete
+                  ? const MainScreenContainer()
+                  : const OnboardingScreen(),
+          debugShowCheckedModeBanner: false, // Hide debug banner
+        );
+      },
     );
   }
 }

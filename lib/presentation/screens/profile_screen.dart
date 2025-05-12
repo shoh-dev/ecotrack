@@ -1,3 +1,4 @@
+import 'package:ecotrack/presentation/screens/main_screen_container.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import provider
 import 'package:ecotrack/presentation/viewmodels/profile_viewmodel.dart'; // Import ProfileViewModel
@@ -7,8 +8,12 @@ import 'package:intl/intl.dart'; // Import intl for date formatting
 
 // ProfileScreen is the View for displaying and managing the user's profile.
 // It is a StatefulWidget to manage lifecycle and form state, and consumes ProfileViewModel.
+// It can also be used as part of the onboarding flow.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  // Optional callback to execute when the profile is successfully saved during onboarding.
+  final VoidCallback? onboardingCompleteCallback;
+
+  const ProfileScreen({super.key, this.onboardingCompleteCallback});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -26,7 +31,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       TextEditingController(); // New controller for baseline year
 
   // State for dropdowns
-  // String? _selectedPreferredUnits; // New state for preferred units (optional)
   // Using a simple list for now, could be enum or constants later
   final List<String> _unitSystems = ['Metric', 'Imperial'];
   String? _selectedUnitSystem; // State for selected unit system
@@ -55,7 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // Listener method to populate form fields when the goal is fetched.
+  // Listener method to populate form fields when the profile is fetched.
   void _populateFieldsFromProfile() {
     final viewModel = context.read<ProfileViewModel>();
     final fetchedProfile = viewModel.userProfile;
@@ -73,16 +77,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fetchedProfile.baselineYear?.toString() ??
             ''; // Populate baseline year
 
-        // --- New: Populate new state variables from fetched profile ---
-        setState(() {
-          _selectedUnitSystem =
-              fetchedProfile.preferredUnits; // Populate preferred units
-        });
-        // --- End New ---
-
         // --- New: Set _isEditing to false after populating fields ---
         // This switches to the read-only view after the profile is loaded.
         setState(() {
+          _selectedUnitSystem =
+              fetchedProfile.preferredUnits; // Populate preferred units
           _isEditing = false;
         });
         // --- End New ---
@@ -129,10 +128,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ).showSnackBar(SnackBar(content: Text(currentSaveMessage)));
           // Clear the success message from the ViewModel after handling it.
           viewModel.clearSaveMessage();
-          // --- New: Switch to read-only view after successful save ---
-          setState(() {
-            _isEditing = false;
-          });
+          // --- New: Handle navigation after successful save ---
+          if (widget.onboardingCompleteCallback != null) {
+            // If this is part of onboarding, call the callback and navigate away.
+            widget.onboardingCompleteCallback!();
+            // Use pushReplacement to replace the onboarding screen with the main app.
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MainScreenContainer(),
+              ), // Assuming MainScreenContainer is your main app entry
+            );
+          } else {
+            // If not onboarding, just switch to read-only view.
+            setState(() {
+              _isEditing = false;
+            });
+          }
           // --- End New ---
         }
         // If it's an error message, show a Snackbar.
@@ -179,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'), // App bar title
         backgroundColor: Theme.of(context).primaryColor,
         actions: [
-          // Add Edit button
+          // Add Edit button (only if profile exists and not editing)
           if (profileViewModel.userProfile != null &&
               !profileViewModel.isLoading &&
               !profileViewModel.isSaving &&
